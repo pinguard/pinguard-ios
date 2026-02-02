@@ -1,26 +1,58 @@
 // swift-tools-version: 6.2
-// The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
 
 let package = Package(
     name: "PinGuard",
+
+    platforms: [
+        .iOS(.v13),
+        .macOS(.v10_15),
+        .tvOS(.v13),
+        .watchOS(.v6),
+        .visionOS(.v1)
+    ],
     products: [
-        // Products define the executables and libraries a package produces, making them visible to other packages.
         .library(
             name: "PinGuard",
             targets: ["PinGuard"]
         ),
+
+        .library(
+            name: "PinGuard-Dynamic",
+            type: .dynamic,
+            targets: ["PinGuard"]
+        ),
+
+        .library(
+            name: "PinGuardTestSupport",
+            targets: ["PinGuardTestSupport"]
+        )
+    ],
+    dependencies: [
+        // - TODO: Add swift crypto if necessary
     ],
     targets: [
-        // Targets are the basic building blocks of a package, defining a module or a test suite.
-        // Targets can depend on other targets in this package and products from dependencies.
         .target(
-            name: "PinGuard"
+            name: "PinGuard",
+            path: "Sources/PinGuard",
+            exclude: [
+                // - TODO: Exclude unnecessary files here
+            ],
+            swiftSettings: [
+                .define("PINGUARD_SPM")
+            ],
+            linkerSettings: [
+                .linkedFramework("Security")
+            ]
         ),
         .testTarget(
             name: "PinGuardTests",
-            dependencies: ["PinGuard"]
-        ),
+            dependencies: ["PinGuard", "PinGuardTestSupport"],
+            path: "Tests/PinGuardTests",
+            resources: [
+                .process("Fixtures")
+            ]
+        )
     ]
 )
