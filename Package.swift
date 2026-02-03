@@ -1,10 +1,8 @@
 // swift-tools-version: 6.2
-
 import PackageDescription
 
 let package = Package(
-    name: "PinGuard",
-
+name: "PinGuard",
     platforms: [
         .iOS(.v13),
         .macOS(.v10_15),
@@ -17,28 +15,15 @@ let package = Package(
             name: "PinGuard",
             targets: ["PinGuard"]
         ),
-
-        .library(
-            name: "PinGuard-Dynamic",
-            type: .dynamic,
-            targets: ["PinGuard"]
-        ),
-
         .library(
             name: "PinGuardTestSupport",
             targets: ["PinGuardTestSupport"]
         )
     ],
-    dependencies: [
-        // - TODO: Add swift crypto if necessary
-    ],
     targets: [
         .target(
             name: "PinGuard",
             path: "Sources/PinGuard",
-            exclude: [
-                // - TODO: Exclude unnecessary files here
-            ],
             swiftSettings: [
                 .define("PINGUARD_SPM")
             ],
@@ -46,9 +31,19 @@ let package = Package(
                 .linkedFramework("Security")
             ]
         ),
+
+        .target(
+            name: "PinGuardTestSupport",
+            dependencies: ["PinGuard"],
+            path: "Tests/PinGuardTestSupport"
+        ),
+
         .testTarget(
             name: "PinGuardTests",
-            dependencies: ["PinGuard", "PinGuardTestSupport"],
+            dependencies: [
+                "PinGuard",
+                "PinGuardTestSupport"
+            ],
             path: "Tests/PinGuardTests",
             resources: [
                 .process("Fixtures")
