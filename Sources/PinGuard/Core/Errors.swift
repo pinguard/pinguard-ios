@@ -1,6 +1,6 @@
 import Foundation
 
-public enum PinGuardError: Error, Equatable {
+enum PinGuardError: Error, Equatable {
 
     case invalidHost
     case policyNotFound
@@ -13,9 +13,9 @@ public enum PinGuardError: Error, Equatable {
     case mtlsIdentityUnavailable
 }
 
-public struct TrustDecision: Equatable, Sendable {
+struct TrustDecision: Equatable, Sendable {
 
-    public enum Reason: Equatable, Sendable {
+    enum Reason: Equatable, Sendable {
         case pinMatch
         case systemTrustAllowed
         case systemTrustFailedPermissive
@@ -26,14 +26,7 @@ public struct TrustDecision: Equatable, Sendable {
         case pinningFailed
     }
 
-    public let isTrusted: Bool
-    public let reason: Reason
-    public let events: [PinGuardEvent]
-
-    public init(isTrusted: Bool, reason: Reason, events: [PinGuardEvent]) {
-        self.isTrusted = isTrusted
-        self.reason = reason
-        self.events = events
-    }
+    let isTrusted: Bool
+    let reason: Reason
+    let events: [PinGuardEvent]
 }
-

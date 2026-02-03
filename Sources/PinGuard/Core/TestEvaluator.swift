@@ -1,16 +1,17 @@
 import Foundation
 import Security
 
-public final class TrustEvaluator {
+final class TrustEvaluator {
+
     private let policyResolver: PolicyResolver
     private let eventSink: ((PinGuardEvent) -> Void)?
 
-    public init(policySet: PolicySet, eventSink: ((PinGuardEvent) -> Void)? = nil) {
+    init(policySet: PolicySet, eventSink: ((PinGuardEvent) -> Void)? = nil) {
         self.policyResolver = PolicyResolver(policySet: policySet)
         self.eventSink = eventSink
     }
 
-    public func evaluate(serverTrust: SecTrust, host: String) -> TrustDecision {
+    func evaluate(serverTrust: SecTrust, host: String) -> TrustDecision {
         var events: [PinGuardEvent] = []
         let normalizedHost = HostPattern.normalizeHost(host)
         guard let policy = policyResolver.resolve(host: normalizedHost) else {
@@ -36,22 +37,18 @@ public final class TrustEvaluator {
         }
 
         let chain = CertificateChain(trust: serverTrust)
-        return evaluate(
-            chain: chain,
-            systemTrusted: systemTrusted,
-            host: normalizedHost,
-            policy: policy,
-            events: &events
-        )
+        return evaluate(chain: chain,
+                        systemTrusted: systemTrusted,
+                        host: normalizedHost,
+                        policy: policy,
+                        events: &events)
     }
 
-    func evaluate(
-        chain: CertificateChain,
-        systemTrusted: Bool,
-        host: String,
-        policy: PinningPolicy,
-        events: inout [PinGuardEvent]
-    ) -> TrustDecision {
+    func evaluate(chain: CertificateChain,
+                  systemTrusted: Bool,
+                  host: String,
+                  policy: PinningPolicy,
+                  events: inout [PinGuardEvent]) -> TrustDecision {
         emit(.chainSummary(host: host, summary: chain.summary), into: &events)
         let pinMatchResult = evaluatePins(policy: policy, chain: chain, host: host, events: &events)
         if pinMatchResult {
@@ -69,17 +66,19 @@ public final class TrustEvaluator {
         return TrustDecision(isTrusted: false, reason: .pinningFailed, events: events)
     }
 
-    private func evaluatePins(policy: PinningPolicy, chain: CertificateChain, host: String, events: inout [PinGuardEvent]) -> Bool {
+    private func evaluatePins(policy: PinningPolicy,
+                              chain: CertificateChain,
+                              host: String,
+                              events: inout [PinGuardEvent]) -> Bool {
         guard !policy.pins.isEmpty else {
             emit(.pinSetEmpty(host: host), into: &events)
             return false
         }
+
         let candidates = chain.candidates
         var matchedPins: [Pin] = []
-        for pin in policy.pins {
-            if matches(pin: pin, candidates: candidates) {
-                matchedPins.append(pin)
-            }
+        for pin in policy.pins where matches(pin: pin, candidates: candidates) {
+            matchedPins.append(pin)
         }
         if matchedPins.isEmpty {
             return false
@@ -92,11 +91,17 @@ public final class TrustEvaluator {
         for candidate in candidates where candidate.scope.contains(pin.scope) {
             switch pin.type {
             case .spki:
-                if candidate.spkiHash == pin.hash { return true }
+                if candidate.spkiHash == pin.hash {
+                    return true
+                }
             case .certificate:
-                if candidate.certificateHash == pin.hash { return true }
+                if candidate.certificateHash == pin.hash {
+                    return true
+                }
             case .ca:
-                if candidate.scope.isCA, candidate.certificateHash == pin.hash { return true }
+                if candidate.scope.isCA, candidate.certificateHash == pin.hash {
+                    return true
+                }
             }
         }
         return false
@@ -109,6 +114,7 @@ public final class TrustEvaluator {
 }
 
 struct CertificateChain {
+
     let candidates: [CertificateCandidate]
     let summary: ChainSummary
 
@@ -178,10 +184,11 @@ enum CertificateScope: String {
     }
 }
 
-public struct ChainSummary: Equatable, Sendable {
-    public let leafCommonName: String?
-    public let issuerCommonName: String?
-    public let sanCount: Int
+struct ChainSummary: Equatable, Sendable {
+
+    let leafCommonName: String?
+    let issuerCommonName: String?
+    let sanCount: Int
 
     init(candidates: [CertificateCandidate]) {
         guard let leaf = candidates.first else {
@@ -190,6 +197,7 @@ public struct ChainSummary: Equatable, Sendable {
             self.sanCount = 0
             return
         }
+
         let leafCert = leaf.certificate
         self.leafCommonName = CertificateSummary.safeCommonName(leafCert)
         self.issuerCommonName = CertificateSummary.safeIssuerCommonName(leafCert)
@@ -199,7 +207,10 @@ public struct ChainSummary: Equatable, Sendable {
 
 enum CertificateSummary {
     static func safeCommonName(_ cert: SecCertificate) -> String? {
-        guard let summary = SecCertificateCopySubjectSummary(cert) else { return nil }
+        guard let summary = SecCertificateCopySubjectSummary(cert) else {
+            return nil
+        }
+
         let commonName: String = summary as String
         return redactDomain(commonName)
     }
@@ -229,8 +240,10 @@ enum CertificateSummary {
     private static func redactDomain(_ value: String) -> String? {
         let normalized = value.lowercased()
         let labels = normalized.split(separator: ".")
-        guard labels.count >= 2 else { return nil }
+        guard labels.count >= 2 else {
+            return nil
+        }
+
         return "*." + labels.suffix(2).joined(separator: ".")
     }
 }
-

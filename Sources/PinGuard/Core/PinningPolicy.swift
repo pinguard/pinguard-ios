@@ -1,35 +1,40 @@
 import Foundation
 
-public enum FailStrategy: String, Codable, Sendable {
+enum FailStrategy: String, Codable, Sendable {
+
     case strict
     case permissive
 }
 
-public enum PinType: String, Codable, Sendable {
+enum PinType: String, Codable, Sendable {
+
     case spki
     case certificate
     case ca
 }
 
-public enum PinRole: String, Codable, Sendable {
+enum PinRole: String, Codable, Sendable {
+
     case primary
     case backup
 }
 
-public enum PinScope: String, Codable, Sendable {
+enum PinScope: String, Codable, Sendable {
+
     case leaf
     case intermediate
     case root
     case any
 }
 
-public struct Pin: Hashable, Codable, Sendable {
-    public let type: PinType
-    public let hash: String
-    public let role: PinRole
-    public let scope: PinScope
+struct Pin: Hashable, Codable, Sendable {
 
-    public init(type: PinType, hash: String, role: PinRole = .primary, scope: PinScope = .any) {
+    let type: PinType
+    let hash: String
+    let role: PinRole
+    let scope: PinScope
+
+    init(type: PinType, hash: String, role: PinRole = .primary, scope: PinScope = .any) {
         self.type = type
         self.hash = hash
         self.role = role
@@ -37,18 +42,17 @@ public struct Pin: Hashable, Codable, Sendable {
     }
 }
 
-public struct PinningPolicy: Hashable, Codable {
-    public let pins: [Pin]
-    public let failStrategy: FailStrategy
-    public let requireSystemTrust: Bool
-    public let allowSystemTrustFallback: Bool
+struct PinningPolicy: Hashable, Codable {
 
-    public init(
-        pins: [Pin],
-        failStrategy: FailStrategy = .strict,
-        requireSystemTrust: Bool = true,
-        allowSystemTrustFallback: Bool = false
-    ) {
+    let pins: [Pin]
+    let failStrategy: FailStrategy
+    let requireSystemTrust: Bool
+    let allowSystemTrustFallback: Bool
+
+    init(pins: [Pin],
+         failStrategy: FailStrategy = .strict,
+         requireSystemTrust: Bool = true,
+         allowSystemTrustFallback: Bool = false) {
         self.pins = pins
         self.failStrategy = failStrategy
         self.requireSystemTrust = requireSystemTrust
@@ -56,11 +60,12 @@ public struct PinningPolicy: Hashable, Codable {
     }
 }
 
-public enum HostPattern: Hashable, Codable {
+enum HostPattern: Hashable, Codable {
+
     case exact(String)
     case wildcard(String)
 
-    public var rawValue: String {
+    var rawValue: String {
         switch self {
         case .exact(let value):
             return value
@@ -69,7 +74,7 @@ public enum HostPattern: Hashable, Codable {
         }
     }
 
-    public static func parse(_ pattern: String) -> HostPattern {
+    static func parse(_ pattern: String) -> HostPattern {
         let normalized = HostPattern.normalizeHost(pattern)
         if normalized.hasPrefix("*.") {
             return .wildcard(String(normalized.dropFirst(2)))
@@ -82,23 +87,19 @@ public enum HostPattern: Hashable, Codable {
     }
 }
 
-public struct HostPolicy: Hashable, Codable {
-    public let pattern: HostPattern
-    public let policy: PinningPolicy
+struct HostPolicy: Hashable, Codable {
 
-    public init(pattern: HostPattern, policy: PinningPolicy) {
-        self.pattern = pattern
-        self.policy = policy
-    }
+    let pattern: HostPattern
+    let policy: PinningPolicy
 }
 
 public struct PolicySet: Hashable, Codable {
-    public let policies: [HostPolicy]
-    public let defaultPolicy: PinningPolicy?
 
-    public init(policies: [HostPolicy], defaultPolicy: PinningPolicy? = nil) {
+    let policies: [HostPolicy]
+    let defaultPolicy: PinningPolicy?
+
+    init(policies: [HostPolicy], defaultPolicy: PinningPolicy? = nil) {
         self.policies = policies
         self.defaultPolicy = defaultPolicy
     }
 }
-

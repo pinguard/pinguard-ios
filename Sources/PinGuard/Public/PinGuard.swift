@@ -2,70 +2,77 @@ import Foundation
 import Security
 
 @MainActor
-public final class PinGuard {
-    public static let shared = PinGuard()
+final class PinGuard {
 
-    public struct Configuration {
-        public struct Environment: Hashable, Codable, ExpressibleByStringLiteral, Sendable {
-            public let name: String
-            public init(_ name: String) { self.name = name }
-            public init(stringLiteral value: StringLiteralType) { self.name = value }
-            public static let dev: Environment = "dev"
-            public static let stage: Environment = "stage"
-            public static let prod: Environment = "prod"
+    static let shared = PinGuard()
+
+    struct Configuration {
+
+        struct Environment: Hashable, Codable, ExpressibleByStringLiteral, Sendable {
+            let name: String
+
+            init(_ name: String) {
+                self.name = name
+            }
+
+            init(stringLiteral value: StringLiteralType) {
+                self.name = value
+            }
+
+            static let dev: Environment = "dev"
+            static let uat: Environment = "uat"
+            static let prod: Environment = "prod"
         }
 
-        public struct EnvironmentConfiguration {
-            public let policySet: PolicySet
-            public let mtlsConfiguration: MTLSConfiguration?
+        struct EnvironmentConfiguration {
 
-            public init(policySet: PolicySet, mtlsConfiguration: MTLSConfiguration? = nil) {
+            let policySet: PolicySet
+            let mtlsConfiguration: MTLSConfiguration?
+
+            init(policySet: PolicySet, mtlsConfiguration: MTLSConfiguration? = nil) {
                 self.policySet = policySet
                 self.mtlsConfiguration = mtlsConfiguration
             }
         }
 
-        public var environments: [Environment: EnvironmentConfiguration]
-        public var current: Environment
-        public var telemetry: ((PinGuardEvent) -> Void)?
+        var environments: [Environment: EnvironmentConfiguration]
+        var current: Environment
+        var telemetry: ((PinGuardEvent) -> Void)?
 
-        public init(
-            environments: [Environment: EnvironmentConfiguration],
-            current: Environment,
-            telemetry: ((PinGuardEvent) -> Void)? = nil
-        ) {
+        init(environments: [Environment: EnvironmentConfiguration],
+             current: Environment,
+             telemetry: ((PinGuardEvent) -> Void)? = nil) {
             self.environments = environments
             self.current = current
             self.telemetry = telemetry
         }
 
-        public var activePolicySet: PolicySet {
+        var activePolicySet: PolicySet {
             environments[current]?.policySet ?? PolicySet(policies: [])
         }
 
-        public var activeMTLS: MTLSConfiguration? {
+        var activeMTLS: MTLSConfiguration? {
             environments[current]?.mtlsConfiguration
         }
     }
 
-    public struct Builder {
+    struct Builder {
+
         private(set) var environments: [Configuration.Environment: Configuration.EnvironmentConfiguration] = [:]
         private(set) var current: Configuration.Environment = .prod
         private(set) var telemetry: ((PinGuardEvent) -> Void)?
 
-        public mutating func environment(
-            _ env: Configuration.Environment,
-            policySet: PolicySet,
-            mtls: MTLSConfiguration? = nil
-        ) {
+        mutating func environment(_ env: Configuration.Environment,
+                                  policySet: PolicySet,
+                                  mtls: MTLSConfiguration? = nil) {
             environments[env] = Configuration.EnvironmentConfiguration(policySet: policySet, mtlsConfiguration: mtls)
         }
 
-        public mutating func selectEnvironment(_ env: Configuration.Environment) {
+        mutating func selectEnvironment(_ env: Configuration.Environment) {
             current = env
         }
 
-        public mutating func telemetry(_ handler: @escaping (PinGuardEvent) -> Void) {
+        mutating func telemetry(_ handler: @escaping (PinGuardEvent) -> Void) {
             telemetry = handler
         }
     }
@@ -77,29 +84,31 @@ public final class PinGuard {
         self.configuration = Configuration(environments: [:], current: .prod)
     }
 
-    public static func configure(_ build: (inout Builder) -> Void) {
+    static func configure(_ build: (inout Builder) -> Void) {
         var builder = Builder()
         build(&builder)
-        let config = Configuration(environments: builder.environments, current: builder.current, telemetry: builder.telemetry)
+        let config = Configuration(environments: builder.environments,
+                                   current: builder.current,
+                                   telemetry: builder.telemetry)
         shared.update(configuration: config)
     }
 
-    public func update(configuration: Configuration) {
+    func update(configuration: Configuration) {
         lock.lock()
         self.configuration = configuration
         lock.unlock()
     }
 
-    nonisolated public func evaluate(serverTrust: SecTrust, host: String) -> TrustDecision {
+    nonisolated func evaluate(serverTrust: SecTrust, host: String) -> TrustDecision {
         let config = currentConfiguration()
-        let evaluator = TrustEvaluator(policySet: config.activePolicySet, eventSink: { event in
+        let evaluator = TrustEvaluator(policySet: config.activePolicySet) { event in
             PinGuardLogger.log(event)
             config.telemetry?(event)
-        })
+        }
         return evaluator.evaluate(serverTrust: serverTrust, host: host)
     }
 
-    nonisolated public func currentConfiguration() -> Configuration {
+    nonisolated func currentConfiguration() -> Configuration {
         lock.lock()
         let config = configuration
         lock.unlock()
@@ -107,29 +116,26 @@ public final class PinGuard {
     }
 }
 
-public enum RemoteConfigSignature: Codable, Equatable, Sendable {
+enum RemoteConfigSignature: Codable, Equatable, Sendable {
+
     case hmacSHA256(secretID: String)
     case publicKey(keyID: String)
 }
 
-public struct RemoteConfigBlob: Codable, Equatable, Sendable {
-    public let payload: Data
-    public let signature: Data
-    public let signatureType: RemoteConfigSignature
+struct RemoteConfigBlob: Codable, Equatable, Sendable {
 
-    public init(payload: Data, signature: Data, signatureType: RemoteConfigSignature) {
-        self.payload = payload
-        self.signature = signature
-        self.signatureType = signatureType
-    }
+    let payload: Data
+    let signature: Data
+    let signatureType: RemoteConfigSignature
 }
 
-public protocol RemoteConfigVerifier {
+protocol RemoteConfigVerifier {
+
     func verify(blob: RemoteConfigBlob) -> Bool
 }
 
-public enum RemoteConfigThreatModel {
-    public static let unsignedConfigWarning =
+enum RemoteConfigThreatModel {
+
+    static let unsignedConfigWarning =
         "Unsigned remote configuration is insecure; it allows a network attacker to disable pinning."
 }
-

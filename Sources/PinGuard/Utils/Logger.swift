@@ -1,7 +1,8 @@
 import Foundation
 import os
 
-public enum PinGuardEvent: Equatable, Sendable {
+enum PinGuardEvent: Equatable, Sendable {
+
     case policyMissing(host: String)
     case systemTrustEvaluated(host: String, isTrusted: Bool)
     case systemTrustFailed(host: String, error: String?)
@@ -16,11 +17,13 @@ public enum PinGuardEvent: Equatable, Sendable {
     case mtlsIdentityMissing(host: String)
 }
 
-public struct PinGuardLogger {
-    public static let subsystem = "PinGuard"
-    private static let logger = Logger(subsystem: subsystem, category: "core")
+// swiftlint:disable all
+struct PinGuardLogger {
 
-    public static func log(_ event: PinGuardEvent) {
+    static let subsystem = "PinGuard"
+    static let logger = Logger(subsystem: subsystem, category: "core")
+
+    static func log(_ event: PinGuardEvent) {
         switch event {
         case .policyMissing(let host):
             logger.error("Policy missing for host: \(host, privacy: .public)")
@@ -49,4 +52,4 @@ public struct PinGuardLogger {
         }
     }
 }
-
+// swiftlint:enable all

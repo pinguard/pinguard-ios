@@ -1,9 +1,10 @@
-import Foundation
 import CryptoKit
+import Foundation
 import Security
 
-public enum PinHasher {
-    public static func spkiHash(for key: SecKey) throws -> String {
+enum PinHasher {
+
+    static func spkiHash(for key: SecKey) throws -> String {
         guard let keyData = SecKeyCopyExternalRepresentation(key, nil) as Data? else {
             throw PinGuardError.unsupportedKeyType
         }
@@ -11,11 +12,13 @@ public enum PinHasher {
         guard let keyType = attributes[kSecAttrKeyType] as? String else {
             throw PinGuardError.unsupportedKeyType
         }
-        let spki = try SubjectPublicKeyInfoBuilder.buildSPKI(keyType: keyType, attributes: attributes, keyBytes: keyData)
+        let spki = try SubjectPublicKeyInfoBuilder.buildSPKI(keyType: keyType,
+                                                             attributes: attributes,
+                                                             keyBytes: keyData)
         return sha256Base64(spki)
     }
 
-    public static func certificateHash(for certificate: SecCertificate) -> String {
+    static func certificateHash(for certificate: SecCertificate) -> String {
         let data = SecCertificateCopyData(certificate) as Data
         return sha256Base64(data)
     }
@@ -27,26 +30,43 @@ public enum PinHasher {
 }
 
 enum SubjectPublicKeyInfoBuilder {
+
     static func buildSPKI(keyType: String, attributes: NSDictionary, keyBytes: Data) throws -> Data {
         let algorithmIdentifier: [UInt8]
         if keyType == (kSecAttrKeyTypeRSA as String) {
             algorithmIdentifier = [
-                0x30, 0x0d, 0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x01, 0x05, 0x00
+                0x30, 0x0d, 0x06, 0x09,
+                0x2a, 0x86, 0x48, 0x86,
+                0xf7, 0x0d, 0x01, 0x01,
+                0x01, 0x05, 0x00
             ]
         } else if keyType == (kSecAttrKeyTypeECSECPrimeRandom as String) {
             let size = attributes[kSecAttrKeySizeInBits] as? Int ?? 0
             switch size {
             case 256:
                 algorithmIdentifier = [
-                    0x30, 0x13, 0x06, 0x07, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x02, 0x01, 0x06, 0x08, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x03, 0x01, 0x07
+                    0x30, 0x13, 0x06, 0x07,
+                    0x2a, 0x86, 0x48, 0xce,
+                    0x3d, 0x02, 0x01, 0x06,
+                    0x08, 0x2a, 0x86, 0x48,
+                    0xce, 0x3d, 0x03, 0x01,
+                    0x07
                 ]
             case 384:
                 algorithmIdentifier = [
-                    0x30, 0x10, 0x06, 0x07, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x02, 0x01, 0x06, 0x05, 0x2b, 0x81, 0x04, 0x00, 0x22
+                    0x30, 0x10, 0x06, 0x07,
+                    0x2a, 0x86, 0x48, 0xce,
+                    0x3d, 0x02, 0x01, 0x06,
+                    0x05, 0x2b, 0x81, 0x04,
+                    0x00, 0x22
                 ]
             case 521:
                 algorithmIdentifier = [
-                    0x30, 0x10, 0x06, 0x07, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x02, 0x01, 0x06, 0x05, 0x2b, 0x81, 0x04, 0x00, 0x23
+                    0x30, 0x10, 0x06, 0x07,
+                    0x2a, 0x86, 0x48, 0xce,
+                    0x3d, 0x02, 0x01, 0x06,
+                    0x05, 0x2b, 0x81, 0x04,
+                    0x00, 0x23
                 ]
             default:
                 throw PinGuardError.unsupportedKeyType
@@ -62,6 +82,7 @@ enum SubjectPublicKeyInfoBuilder {
 }
 
 enum ASN1 {
+
     static func sequence(_ content: [UInt8]) -> [UInt8] {
         [0x30] + lengthBytes(content.count) + content
     }

@@ -1,13 +1,15 @@
 import Foundation
 import Security
 
-public enum ClientCertificateSource: Sendable {
+enum ClientCertificateSource: Sendable {
+
     case pkcs12(data: Data, password: String)
     case keychain(identityTag: Data)
 }
 
-public struct ClientCertificateLoader {
-    public static func loadIdentity(from source: ClientCertificateSource) -> ClientIdentityResult {
+struct ClientCertificateLoader {
+
+    static func loadIdentity(from source: ClientCertificateSource) -> ClientIdentityResult {
         switch source {
         case .pkcs12(let data, let password):
             return loadPKCS12(data: data, password: password)
@@ -23,11 +25,13 @@ public struct ClientCertificateLoader {
         guard status == errSecSuccess, let array = items as? [[String: Any]] else {
             return .unavailable
         }
+
         guard let first = array.first,
-              let identityRef = first[kSecImportItemIdentity as String] else {
+              let identityRef = first[kSecImportItemIdentity as String] as CFTypeRef? else {
             return .unavailable
         }
-        let identity = (identityRef as! SecIdentity)
+
+        let identity: SecIdentity = unsafeDowncast(identityRef, to: SecIdentity.self)
         let chain = (first[kSecImportItemCertChain as String] as? [SecCertificate]) ?? []
         return .success(identity: identity, certificateChain: chain)
     }
@@ -41,10 +45,13 @@ public struct ClientCertificateLoader {
         ]
         var item: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &item)
-        guard status == errSecSuccess, let identityRef = item else {
+        guard status == errSecSuccess,
+              let identityRef = item,
+              CFGetTypeID(identityRef) == SecIdentityGetTypeID() else {
             return .unavailable
         }
-        let identity = (identityRef as! SecIdentity)
+
+        let identity: SecIdentity = unsafeDowncast(identityRef, to: SecIdentity.self)
         var cert: SecCertificate?
         _ = SecIdentityCopyCertificate(identity, &cert)
         let chain = cert.map { [$0] } ?? []
@@ -52,15 +59,15 @@ public struct ClientCertificateLoader {
     }
 }
 
-public struct StaticClientCertificateProvider: ClientCertificateProvider, Sendable {
+struct StaticClientCertificateProvider: ClientCertificateProvider, Sendable {
+
     private let source: ClientCertificateSource
 
-    public init(source: ClientCertificateSource) {
+    init(source: ClientCertificateSource) {
         self.source = source
     }
 
-    public func clientIdentity(for host: String) -> ClientIdentityResult {
+    func clientIdentity(for host: String) -> ClientIdentityResult {
         ClientCertificateLoader.loadIdentity(from: source)
     }
 }
-
