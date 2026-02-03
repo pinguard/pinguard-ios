@@ -13,6 +13,7 @@ Thumbs.db
 *.xcuserstate
 project.xcworkspace/
 xcuserdata/
+.idea/
 
 # Eclipse
 .classpath
@@ -44,5 +45,14 @@ Backup[ ]of[ ]*.numbers/
 env.sh
 *.gcno
 
-# UI Tests
-.gitmodules
+# Swift Package Manager
+.swiftpm
+.build/
+
+# Test artifacts
+Tests/Artifacts
+
+# Private test animations
+Tests/Samples/Private/*.json
+Tests/Samples/Private/**/*.json
+Tests/__Snapshots__/**/*Private*
