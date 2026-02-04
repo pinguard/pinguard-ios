@@ -1,15 +1,15 @@
 import Foundation
 import Security
 
-enum ClientCertificateSource: Sendable {
-
+public enum ClientCertificateSource: Sendable {
+    
     case pkcs12(data: Data, password: String)
     case keychain(identityTag: Data)
 }
 
-struct ClientCertificateLoader {
-
-    static func loadIdentity(from source: ClientCertificateSource) -> ClientIdentityResult {
+public struct ClientCertificateLoader {
+    
+    public static func loadIdentity(from source: ClientCertificateSource) -> ClientIdentityResult {
         switch source {
         case .pkcs12(let data, let password):
             return loadPKCS12(data: data, password: password)
@@ -17,7 +17,7 @@ struct ClientCertificateLoader {
             return loadFromKeychain(tag: identityTag)
         }
     }
-
+    
     private static func loadPKCS12(data: Data, password: String) -> ClientIdentityResult {
         let options = [kSecImportExportPassphrase as String: password]
         var items: CFArray?
@@ -25,17 +25,17 @@ struct ClientCertificateLoader {
         guard status == errSecSuccess, let array = items as? [[String: Any]] else {
             return .unavailable
         }
-
+        
         guard let first = array.first,
               let identityRef = first[kSecImportItemIdentity as String] as CFTypeRef? else {
             return .unavailable
         }
-
+        
         let identity: SecIdentity = unsafeDowncast(identityRef, to: SecIdentity.self)
         let chain = (first[kSecImportItemCertChain as String] as? [SecCertificate]) ?? []
         return .success(identity: identity, certificateChain: chain)
     }
-
+    
     private static func loadFromKeychain(tag: Data) -> ClientIdentityResult {
         let query: [String: Any] = [
             kSecClass as String: kSecClassIdentity,
@@ -50,7 +50,7 @@ struct ClientCertificateLoader {
               CFGetTypeID(identityRef) == SecIdentityGetTypeID() else {
             return .unavailable
         }
-
+        
         let identity: SecIdentity = unsafeDowncast(identityRef, to: SecIdentity.self)
         var cert: SecCertificate?
         _ = SecIdentityCopyCertificate(identity, &cert)
@@ -59,15 +59,15 @@ struct ClientCertificateLoader {
     }
 }
 
-struct StaticClientCertificateProvider: ClientCertificateProvider, Sendable {
-
+public struct StaticClientCertificateProvider: ClientCertificateProvider, Sendable {
+    
     private let source: ClientCertificateSource
-
-    init(source: ClientCertificateSource) {
+    
+    public init(source: ClientCertificateSource) {
         self.source = source
     }
-
-    func clientIdentity(for host: String) -> ClientIdentityResult {
+    
+    public func clientIdentity(for host: String) -> ClientIdentityResult {
         ClientCertificateLoader.loadIdentity(from: source)
     }
 }

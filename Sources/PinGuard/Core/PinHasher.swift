@@ -2,9 +2,9 @@ import CryptoKit
 import Foundation
 import Security
 
-enum PinHasher {
+public enum PinHasher {
 
-    static func spkiHash(for key: SecKey) throws -> String {
+    public static func spkiHash(for key: SecKey) throws -> String {
         guard let keyData = SecKeyCopyExternalRepresentation(key, nil) as Data? else {
             throw PinGuardError.unsupportedKeyType
         }
@@ -18,7 +18,7 @@ enum PinHasher {
         return sha256Base64(spki)
     }
 
-    static func certificateHash(for certificate: SecCertificate) -> String {
+    public static func certificateHash(for certificate: SecCertificate) -> String {
         let data = SecCertificateCopyData(certificate) as Data
         return sha256Base64(data)
     }

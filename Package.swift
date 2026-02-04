@@ -20,9 +20,6 @@ let package = Package(
             targets: ["PinGuardTestSupport"]
         )
     ],
-    dependencies: [
-        .package(url: "https://github.com/realm/SwiftLint.git", from: "0.55.0")
-    ],
     targets: [
         .target(
             name: "PinGuard",
@@ -32,9 +29,6 @@ let package = Package(
             ],
             linkerSettings: [
                 .linkedFramework("Security")
-            ],
-            plugins: [
-              .plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLint")
             ]
         ),
         .target(

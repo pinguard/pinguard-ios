@@ -1,17 +1,19 @@
 import Foundation
 import Security
 
-final class TrustEvaluator {
-
+public final class TrustEvaluator {
+    
     private let policyResolver: PolicyResolver
     private let eventSink: ((PinGuardEvent) -> Void)?
-
-    init(policySet: PolicySet, eventSink: ((PinGuardEvent) -> Void)? = nil) {
+    
+    public init(policySet: PolicySet,
+                eventSink: ((PinGuardEvent) -> Void)? = nil) {
         self.policyResolver = PolicyResolver(policySet: policySet)
         self.eventSink = eventSink
     }
-
-    func evaluate(serverTrust: SecTrust, host: String) -> TrustDecision {
+    
+    public func evaluate(serverTrust: SecTrust,
+                         host: String) -> TrustDecision {
         var events: [PinGuardEvent] = []
         let normalizedHost = HostPattern.normalizeHost(host)
         guard let policy = policyResolver.resolve(host: normalizedHost) else {
@@ -19,14 +21,14 @@ final class TrustEvaluator {
             emit(event, into: &events)
             return TrustDecision(isTrusted: false, reason: .policyMissing, events: events)
         }
-
+        
         let trustPolicy = SecPolicyCreateSSL(true, normalizedHost as CFString)
         SecTrustSetPolicies(serverTrust, trustPolicy)
-
+        
         var trustError: CFError?
         let systemTrusted = SecTrustEvaluateWithError(serverTrust, &trustError)
         emit(.systemTrustEvaluated(host: normalizedHost, isTrusted: systemTrusted), into: &events)
-
+        
         if policy.requireSystemTrust == true && systemTrusted == false {
             if policy.failStrategy == .permissive {
                 emit(.systemTrustFailedPermissive(host: normalizedHost), into: &events)
@@ -35,7 +37,7 @@ final class TrustEvaluator {
             emit(.systemTrustFailed(host: normalizedHost, error: trustError?.localizedDescription), into: &events)
             return TrustDecision(isTrusted: false, reason: .trustFailed, events: events)
         }
-
+        
         let chain = CertificateChain(trust: serverTrust)
         return evaluate(chain: chain,
                         systemTrusted: systemTrusted,
@@ -43,7 +45,7 @@ final class TrustEvaluator {
                         policy: policy,
                         events: &events)
     }
-
+    
     func evaluate(chain: CertificateChain,
                   systemTrusted: Bool,
                   host: String,
@@ -65,7 +67,7 @@ final class TrustEvaluator {
         emit(.pinMismatch(host: host), into: &events)
         return TrustDecision(isTrusted: false, reason: .pinningFailed, events: events)
     }
-
+    
     private func evaluatePins(policy: PinningPolicy,
                               chain: CertificateChain,
                               host: String,
@@ -74,7 +76,7 @@ final class TrustEvaluator {
             emit(.pinSetEmpty(host: host), into: &events)
             return false
         }
-
+        
         let candidates = chain.candidates
         var matchedPins: [Pin] = []
         for pin in policy.pins where matches(pin: pin, candidates: candidates) {
@@ -86,7 +88,7 @@ final class TrustEvaluator {
         emit(.pinMatched(host: host, pins: matchedPins), into: &events)
         return true
     }
-
+    
     private func matches(pin: Pin, candidates: [CertificateCandidate]) -> Bool {
         for candidate in candidates where candidate.scope.contains(pin.scope) {
             switch pin.type {
@@ -106,7 +108,7 @@ final class TrustEvaluator {
         }
         return false
     }
-
+    
     private func emit(_ event: PinGuardEvent, into events: inout [PinGuardEvent]) {
         events.append(event)
         eventSink?(event)
@@ -114,10 +116,10 @@ final class TrustEvaluator {
 }
 
 struct CertificateChain {
-
+    
     let candidates: [CertificateCandidate]
     let summary: ChainSummary
-
+    
     init(trust: SecTrust) {
         var items: [CertificateCandidate] = []
         if let certChain = SecTrustCopyCertificateChain(trust) as? [SecCertificate] {
@@ -138,14 +140,14 @@ struct CertificateChain {
         self.candidates = items
         self.summary = ChainSummary(candidates: items)
     }
-
+    
     init(candidates: [CertificateCandidate]) {
         self.candidates = candidates
         self.summary = ChainSummary(candidates: candidates)
     }
 }
 
-struct CertificateCandidate {
+public struct CertificateCandidate {
     let certificate: SecCertificate
     let spkiHash: String
     let certificateHash: String
@@ -184,20 +186,20 @@ enum CertificateScope: String {
     }
 }
 
-struct ChainSummary: Equatable, Sendable {
-
-    let leafCommonName: String?
-    let issuerCommonName: String?
-    let sanCount: Int
-
-    init(candidates: [CertificateCandidate]) {
+public struct ChainSummary: Equatable, Sendable {
+    
+    public let leafCommonName: String?
+    public let issuerCommonName: String?
+    public let sanCount: Int
+    
+    public init(candidates: [CertificateCandidate]) {
         guard let leaf = candidates.first else {
             self.leafCommonName = nil
             self.issuerCommonName = nil
             self.sanCount = 0
             return
         }
-
+        
         let leafCert = leaf.certificate
         self.leafCommonName = CertificateSummary.safeCommonName(leafCert)
         self.issuerCommonName = CertificateSummary.safeIssuerCommonName(leafCert)
@@ -205,16 +207,17 @@ struct ChainSummary: Equatable, Sendable {
     }
 }
 
-enum CertificateSummary {
+private enum CertificateSummary {
+
     static func safeCommonName(_ cert: SecCertificate) -> String? {
         guard let summary = SecCertificateCopySubjectSummary(cert) else {
             return nil
         }
-
+        
         let commonName: String = summary as String
         return redactDomain(commonName)
     }
-
+    
     static func safeIssuerCommonName(_ cert: SecCertificate) -> String? {
 #if canImport(Security)
         // SecCertificateCopyValues and kSecOIDX509V1IssuerName are not available in all SDKs.
@@ -229,21 +232,21 @@ enum CertificateSummary {
 #endif
         return nil
     }
-
+    
     static func subjectAlternativeNameCount(_ cert: SecCertificate) -> Int {
         // SecCertificateCopyValues and kSecOIDSubjectAltName are not guaranteed to be available.
         // Without parsing ASN.1, conservatively return 0 when we cannot query SANs.
         _ = cert // keep parameter used
         return 0
     }
-
+    
     private static func redactDomain(_ value: String) -> String? {
         let normalized = value.lowercased()
         let labels = normalized.split(separator: ".")
         guard labels.count >= 2 else {
             return nil
         }
-
+        
         return "*." + labels.suffix(2).joined(separator: ".")
     }
 }

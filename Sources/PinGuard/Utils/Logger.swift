@@ -1,29 +1,13 @@
 import Foundation
 import os
 
-enum PinGuardEvent: Equatable, Sendable {
-
-    case policyMissing(host: String)
-    case systemTrustEvaluated(host: String, isTrusted: Bool)
-    case systemTrustFailed(host: String, error: String?)
-    case systemTrustFailedPermissive(host: String)
-    case chainSummary(host: String, summary: ChainSummary)
-    case pinMatched(host: String, pins: [Pin])
-    case pinMismatch(host: String)
-    case pinMismatchAllowedByFallback(host: String)
-    case pinMismatchPermissive(host: String)
-    case pinSetEmpty(host: String)
-    case mtlsIdentityUsed(host: String)
-    case mtlsIdentityMissing(host: String)
-}
-
 // swiftlint:disable all
-struct PinGuardLogger {
-
-    static let subsystem = "PinGuard"
-    static let logger = Logger(subsystem: subsystem, category: "core")
-
-    static func log(_ event: PinGuardEvent) {
+public struct PinGuardLogger {
+    
+    public static let subsystem = "PinGuard"
+    public static let logger = Logger(subsystem: subsystem, category: "core")
+    
+    public static func log(_ event: PinGuardEvent) {
         switch event {
         case .policyMissing(let host):
             logger.error("Policy missing for host: \(host, privacy: .public)")

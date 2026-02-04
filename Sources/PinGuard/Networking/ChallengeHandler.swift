@@ -1,38 +1,38 @@
 import Foundation
 
-final class PinGuardURLSessionDelegate: NSObject, URLSessionDelegate, URLSessionTaskDelegate {
+public final class PinGuardURLSessionDelegate: NSObject, URLSessionDelegate, URLSessionTaskDelegate {
 
     private let pinGuard: PinGuard
     private let mtls: MTLSConfiguration?
 
-    init(pinGuard: PinGuard, mtls: MTLSConfiguration? = nil) {
+    public init(pinGuard: PinGuard, mtls: MTLSConfiguration? = nil) {
         self.pinGuard = pinGuard
         self.mtls = mtls
     }
 
     @MainActor
-    convenience init(mtls: MTLSConfiguration? = nil) {
+    public convenience init(mtls: MTLSConfiguration? = nil) {
         self.init(pinGuard: .shared, mtls: mtls)
     }
 
-    nonisolated func urlSession(_ session: URLSession,
-                                didReceive challenge: URLAuthenticationChallenge,
-                                completionHandler: @escaping (URLSession.AuthChallengeDisposition,
-                                                              URLCredential?) -> Void) {
+    nonisolated public func urlSession(_ session: URLSession,
+                                       didReceive challenge: URLAuthenticationChallenge,
+                                       completionHandler: @escaping (URLSession.AuthChallengeDisposition,
+                                                                     URLCredential?) -> Void) {
         handle(challenge: challenge, completionHandler: completionHandler)
     }
 
-    nonisolated func urlSession(_ session: URLSession,
-                                task: URLSessionTask,
-                                didReceive challenge: URLAuthenticationChallenge,
-                                completionHandler: @escaping (URLSession.AuthChallengeDisposition,
-                                                              URLCredential?) -> Void) {
+    nonisolated public func urlSession(_ session: URLSession,
+                                       task: URLSessionTask,
+                                       didReceive challenge: URLAuthenticationChallenge,
+                                       completionHandler: @escaping (URLSession.AuthChallengeDisposition,
+                                                                     URLCredential?) -> Void) {
         handle(challenge: challenge, completionHandler: completionHandler)
     }
 
-    nonisolated func handle(challenge: URLAuthenticationChallenge,
-                            completionHandler: @escaping (URLSession.AuthChallengeDisposition,
-                                                          URLCredential?) -> Void) {
+    nonisolated private func handle(challenge: URLAuthenticationChallenge,
+                                    completionHandler: @escaping (URLSession.AuthChallengeDisposition,
+                                                                  URLCredential?) -> Void) {
         switch challenge.protectionSpace.authenticationMethod {
         case NSURLAuthenticationMethodServerTrust:
             guard let trust = challenge.protectionSpace.serverTrust else {

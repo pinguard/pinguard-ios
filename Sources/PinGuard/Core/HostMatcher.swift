@@ -1,8 +1,8 @@
 import Foundation
 
-enum HostMatcher {
+public enum HostMatcher {
 
-    static func matches(_ pattern: HostPattern, host: String) -> Bool {
+    public static func matches(_ pattern: HostPattern, host: String) -> Bool {
         let normalizedHost = HostPattern.normalizeHost(host)
         guard !normalizedHost.isEmpty else {
             return false
@@ -58,7 +58,7 @@ struct PolicyResolver {
         return defaultPolicy
     }
 
-    func isExact(_ pattern: HostPattern) -> Bool {
+    private func isExact(_ pattern: HostPattern) -> Bool {
         if case .exact = pattern {
             return true
         }

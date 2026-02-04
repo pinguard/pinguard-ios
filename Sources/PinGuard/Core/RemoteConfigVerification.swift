@@ -2,14 +2,14 @@ import CryptoKit
 import Foundation
 import Security
 
-struct HMACRemoteConfigVerifier: RemoteConfigVerifier {
+public struct HMACRemoteConfigVerifier: RemoteConfigVerifier {
     private let secretProvider: (String) -> Data?
 
-    init(secretProvider: @escaping (String) -> Data?) {
+    public init(secretProvider: @escaping (String) -> Data?) {
         self.secretProvider = secretProvider
     }
 
-    func verify(blob: RemoteConfigBlob) -> Bool {
+    public func verify(blob: RemoteConfigBlob) -> Bool {
         guard case .hmacSHA256(let secretID) = blob.signatureType else {
             return false
         }
@@ -24,15 +24,15 @@ struct HMACRemoteConfigVerifier: RemoteConfigVerifier {
     }
 }
 
-struct PublicKeyRemoteConfigVerifier: RemoteConfigVerifier {
+public struct PublicKeyRemoteConfigVerifier: RemoteConfigVerifier {
 
     private let keyProvider: (String) -> SecKey?
 
-    init(keyProvider: @escaping (String) -> SecKey?) {
+    public init(keyProvider: @escaping (String) -> SecKey?) {
         self.keyProvider = keyProvider
     }
 
-    func verify(blob: RemoteConfigBlob) -> Bool {
+    public func verify(blob: RemoteConfigBlob) -> Bool {
         guard case .publicKey(let keyID) = blob.signatureType else {
             return false
         }
