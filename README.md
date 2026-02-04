@@ -33,7 +33,6 @@ File → Add Package Dependencies → `https://github.com/pinguard/pinguard-ios.
 
 **Products:**
 - `PinGuard` - Main library
-- `PinGuardTestSupport` - Test utilities (optional)
 
 ## Quickstart
 

@@ -14,10 +14,6 @@ let package = Package(
         .library(
             name: "PinGuard",
             targets: ["PinGuard"]
-        ),
-        .library(
-            name: "PinGuardTestSupport",
-            targets: ["PinGuardTestSupport"]
         )
     ],
     targets: [
@@ -31,17 +27,10 @@ let package = Package(
                 .linkedFramework("Security")
             ]
         ),
-        .target(
-            name: "PinGuardTestSupport",
-            dependencies: ["PinGuard"],
-            path: "Tests/PinGuardTestSupport"
-        ),
-
         .testTarget(
             name: "PinGuardTests",
             dependencies: [
-                "PinGuard",
-                "PinGuardTestSupport"
+                "PinGuard"
             ],
             path: "Tests/PinGuardTests"
         )
