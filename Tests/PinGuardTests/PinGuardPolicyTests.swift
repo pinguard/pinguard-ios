@@ -9,11 +9,22 @@ import XCTest
 @testable import PinGuard
 
 final class PinGuardPolicyTests: XCTestCase {
-    func testExample() throws {
-        // XCTest Documentation
-        // https://developer.apple.com/documentation/xctest
+    func testWildcardMatchesSingleLabel() {
+        let pattern = HostPattern.parse("*.example.com")
+        XCTAssertTrue(HostMatcher.matches(pattern, host: "api.example.com"))
+        XCTAssertFalse(HostMatcher.matches(pattern, host: "example.com"))
+        XCTAssertFalse(HostMatcher.matches(pattern, host: "a.b.example.com"))
+    }
 
-        // Defining Test Cases and Test Methods
-        // https://developer.apple.com/documentation/xctest/defining_test_cases_and_test_methods
+    func testPolicyResolverPrefersExact() {
+        let policyExact = PinningPolicy(pins: [Pin(type: .spki, hash: "a")])
+        let policyWildcard = PinningPolicy(pins: [Pin(type: .spki, hash: "b")])
+        let set = PolicySet(policies: [
+            HostPolicy(pattern: .wildcard("example.com"), policy: policyWildcard),
+            HostPolicy(pattern: .exact("api.example.com"), policy: policyExact)
+        ])
+        let resolver = PolicyResolver(policySet: set)
+        let resolved = resolver.resolve(host: "api.example.com")
+        XCTAssertEqual(resolved?.pins.first?.hash, "a")
     }
 }

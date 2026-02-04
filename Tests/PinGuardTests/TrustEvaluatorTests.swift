@@ -6,14 +6,120 @@
 //
 
 import XCTest
+import Security
 @testable import PinGuard
 
 final class TrustEvaluatorTests: XCTestCase {
-    func testExample() throws {
-        // XCTest Documentation
-        // https://developer.apple.com/documentation/xctest
+    func testSPKIHashMatchesExpected() throws {
+        let modulus = [UInt8](repeating: 0x01, count: 256)
+        let exponent = [UInt8](repeating: 0x01, count: 3)
+        let pkcs1 = asn1Sequence(asn1Integer(modulus) + asn1Integer(exponent))
+        let keyData = Data(pkcs1)
+        let attributes: [String: Any] = [
+            kSecAttrKeyType as String: kSecAttrKeyTypeRSA,
+            kSecAttrKeyClass as String: kSecAttrKeyClassPublic,
+            kSecAttrKeySizeInBits as String: 2048
+        ]
+        let key = SecKeyCreateWithData(keyData as CFData, attributes as CFDictionary, nil)
+        XCTAssertNotNil(key)
+        let hash = try PinHasher.spkiHash(for: key!)
+        XCTAssertEqual(hash, "Y7EKzelfzqmyMnNRDIX8cecAf6wj1nk7nT25ws/qnVo=")
+    }
 
-        // Defining Test Cases and Test Methods
-        // https://developer.apple.com/documentation/xctest/defining_test_cases_and_test_methods
+    func testPermissiveAllowsPinMismatchWhenSystemTrusted() {
+        let policy = PinningPolicy(pins: [], failStrategy: .permissive, requireSystemTrust: true, allowSystemTrustFallback: false)
+        let evaluator = TrustEvaluator(policySet: PolicySet(policies: []))
+        var events: [PinGuardEvent] = []
+        let decision = evaluator.evaluate(
+            chain: CertificateChain(candidates: []),
+            systemTrusted: true,
+            host: "example.com",
+            policy: policy,
+            events: &events
+        )
+        XCTAssertTrue(decision.isTrusted)
+        XCTAssertEqual(decision.reason, .pinMismatchPermissive)
+    }
+
+    func testStrictRejectsPinMismatchEvenWhenSystemTrusted() {
+        let policy = PinningPolicy(pins: [], failStrategy: .strict, requireSystemTrust: true, allowSystemTrustFallback: false)
+        let evaluator = TrustEvaluator(policySet: PolicySet(policies: []))
+        var events: [PinGuardEvent] = []
+        let decision = evaluator.evaluate(
+            chain: CertificateChain(candidates: []),
+            systemTrusted: true,
+            host: "example.com",
+            policy: policy,
+            events: &events
+        )
+        XCTAssertFalse(decision.isTrusted)
+        XCTAssertEqual(decision.reason, .pinningFailed)
+    }
+
+    func testRotationBackupPinIsAccepted() {
+        let primaryPin = Pin(type: .spki, hash: "primaryHash", role: .primary)
+        let backupPin = Pin(type: .spki, hash: "backupHash", role: .backup)
+        let policy = PinningPolicy(pins: [primaryPin, backupPin], failStrategy: .strict)
+
+        XCTAssertEqual(policy.pins.count, 2, "Rotation requires both primary and backup pins")
+        XCTAssertTrue(policy.pins.contains(where: { $0.role == .primary }), "Should have primary pin")
+        XCTAssertTrue(policy.pins.contains(where: { $0.role == .backup }), "Should have backup pin")
+        XCTAssertEqual(primaryPin.role, .primary)
+        XCTAssertEqual(backupPin.role, .backup)
+    }
+
+    func testFallbackToSystemTrustAllowsPinMismatch() {
+        let policy = PinningPolicy(pins: [Pin(type: .spki, hash: "wrongHash")], failStrategy: .strict, requireSystemTrust: true, allowSystemTrustFallback: true)
+        let evaluator = TrustEvaluator(policySet: PolicySet(policies: []))
+        var events: [PinGuardEvent] = []
+        let decision = evaluator.evaluate(
+            chain: CertificateChain(candidates: []),
+            systemTrusted: true,
+            host: "example.com",
+            policy: policy,
+            events: &events
+        )
+        XCTAssertTrue(decision.isTrusted)
+        XCTAssertEqual(decision.reason, .pinMismatchAllowedByFallback)
+    }
+
+    func testFallbackDisabledRejectsPinMismatch() {
+        let policy = PinningPolicy(pins: [Pin(type: .spki, hash: "wrongHash")], failStrategy: .strict, requireSystemTrust: true, allowSystemTrustFallback: false)
+        let evaluator = TrustEvaluator(policySet: PolicySet(policies: []))
+        var events: [PinGuardEvent] = []
+        let decision = evaluator.evaluate(
+            chain: CertificateChain(candidates: []),
+            systemTrusted: true,
+            host: "example.com",
+            policy: policy,
+            events: &events
+        )
+        XCTAssertFalse(decision.isTrusted)
+        XCTAssertEqual(decision.reason, .pinningFailed)
+    }
+
+    private func asn1Integer(_ bytes: [UInt8]) -> [UInt8] {
+        var value = bytes
+        if let first = value.first, first & 0x80 != 0 {
+            value.insert(0x00, at: 0)
+        }
+        return [0x02] + lengthBytes(value.count) + value
+    }
+
+    private func asn1Sequence(_ content: [UInt8]) -> [UInt8] {
+        [0x30] + lengthBytes(content.count) + content
+    }
+
+    private func lengthBytes(_ length: Int) -> [UInt8] {
+        if length < 128 {
+            return [UInt8(length)]
+        }
+        var len = length
+        var bytes: [UInt8] = []
+        while len > 0 {
+            bytes.insert(UInt8(len & 0xff), at: 0)
+            len >>= 8
+        }
+        return [0x80 | UInt8(bytes.count)] + bytes
     }
 }

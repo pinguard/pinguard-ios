@@ -2,12 +2,12 @@
 import PackageDescription
 
 let package = Package(
-name: "PinGuard",
+    name: "PinGuard",
     platforms: [
-        .iOS(.v13),
-        .macOS(.v10_15),
-        .tvOS(.v13),
-        .watchOS(.v6),
+        .iOS(.v15),
+        .macOS(.v12),
+        .tvOS(.v15),
+        .watchOS(.v8),
         .visionOS(.v1)
     ],
     products: [
@@ -31,7 +31,6 @@ name: "PinGuard",
                 .linkedFramework("Security")
             ]
         ),
-
         .target(
             name: "PinGuardTestSupport",
             dependencies: ["PinGuard"],
@@ -44,10 +43,7 @@ name: "PinGuard",
                 "PinGuard",
                 "PinGuardTestSupport"
             ],
-            path: "Tests/PinGuardTests",
-            resources: [
-                .process("Fixtures")
-            ]
+            path: "Tests/PinGuardTests"
         )
     ]
 )
