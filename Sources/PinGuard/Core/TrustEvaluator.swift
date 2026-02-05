@@ -9,16 +9,16 @@ import Foundation
 import Security
 
 public final class TrustEvaluator {
-    
+
     private let policyResolver: PolicyResolver
-    private let eventSink: ((PinGuardEvent) -> Void)?
-    
+    private let eventSink: (@Sendable (PinGuardEvent) -> Void)?
+
     public init(policySet: PolicySet,
-                eventSink: ((PinGuardEvent) -> Void)? = nil) {
+                eventSink: (@Sendable (PinGuardEvent) -> Void)? = nil) {
         self.policyResolver = PolicyResolver(policySet: policySet)
         self.eventSink = eventSink
     }
-    
+
     public func evaluate(serverTrust: SecTrust,
                          host: String) -> TrustDecision {
         var events: [PinGuardEvent] = []
@@ -28,14 +28,14 @@ public final class TrustEvaluator {
             emit(event, into: &events)
             return TrustDecision(isTrusted: false, reason: .policyMissing, events: events)
         }
-        
+
         let trustPolicy = SecPolicyCreateSSL(true, normalizedHost as CFString)
         SecTrustSetPolicies(serverTrust, trustPolicy)
-        
+
         var trustError: CFError?
         let systemTrusted = SecTrustEvaluateWithError(serverTrust, &trustError)
         emit(.systemTrustEvaluated(host: normalizedHost, isTrusted: systemTrusted), into: &events)
-        
+
         if policy.requireSystemTrust == true && systemTrusted == false {
             if policy.failStrategy == .permissive {
                 emit(.systemTrustFailedPermissive(host: normalizedHost), into: &events)
@@ -44,7 +44,7 @@ public final class TrustEvaluator {
             emit(.systemTrustFailed(host: normalizedHost, error: trustError?.localizedDescription), into: &events)
             return TrustDecision(isTrusted: false, reason: .trustFailed, events: events)
         }
-        
+
         let chain = CertificateChain(trust: serverTrust)
         return evaluate(chain: chain,
                         systemTrusted: systemTrusted,
@@ -52,7 +52,7 @@ public final class TrustEvaluator {
                         policy: policy,
                         events: &events)
     }
-    
+
     func evaluate(chain: CertificateChain,
                   systemTrusted: Bool,
                   host: String,
@@ -74,7 +74,7 @@ public final class TrustEvaluator {
         emit(.pinMismatch(host: host), into: &events)
         return TrustDecision(isTrusted: false, reason: .pinningFailed, events: events)
     }
-    
+
     private func evaluatePins(policy: PinningPolicy,
                               chain: CertificateChain,
                               host: String,
@@ -83,7 +83,7 @@ public final class TrustEvaluator {
             emit(.pinSetEmpty(host: host), into: &events)
             return false
         }
-        
+
         let candidates = chain.candidates
         var matchedPins: [Pin] = []
         for pin in policy.pins where matches(pin: pin, candidates: candidates) {
@@ -95,7 +95,7 @@ public final class TrustEvaluator {
         emit(.pinMatched(host: host, pins: matchedPins), into: &events)
         return true
     }
-    
+
     private func matches(pin: Pin, candidates: [CertificateCandidate]) -> Bool {
         for candidate in candidates where candidate.scope.contains(pin.scope) {
             switch pin.type {
@@ -115,7 +115,7 @@ public final class TrustEvaluator {
         }
         return false
     }
-    
+
     private func emit(_ event: PinGuardEvent, into events: inout [PinGuardEvent]) {
         events.append(event)
         eventSink?(event)
@@ -123,10 +123,10 @@ public final class TrustEvaluator {
 }
 
 struct CertificateChain {
-    
+
     let candidates: [CertificateCandidate]
     let summary: ChainSummary
-    
+
     init(trust: SecTrust) {
         var items: [CertificateCandidate] = []
         if let certChain = SecTrustCopyCertificateChain(trust) as? [SecCertificate] {
@@ -145,12 +145,13 @@ struct CertificateChain {
             }
         }
         self.candidates = items
-        self.summary = ChainSummary(candidates: items)
+        self.summary = ChainSummary(candidates: items, trust: trust)
     }
-    
-    init(candidates: [CertificateCandidate]) {
+
+    init(candidates: [CertificateCandidate],
+         trust: SecTrust) {
         self.candidates = candidates
-        self.summary = ChainSummary(candidates: candidates)
+        self.summary = ChainSummary(candidates: candidates, trust: trust)
     }
 }
 
@@ -194,22 +195,24 @@ enum CertificateScope: String {
 }
 
 public struct ChainSummary: Equatable, Sendable {
-    
+
     public let leafCommonName: String?
     public let issuerCommonName: String?
     public let sanCount: Int
-    
-    public init(candidates: [CertificateCandidate]) {
+
+    public init(candidates: [CertificateCandidate],
+                trust: SecTrust?) {
         guard let leaf = candidates.first else {
             self.leafCommonName = nil
             self.issuerCommonName = nil
             self.sanCount = 0
             return
         }
-        
+
         let leafCert = leaf.certificate
         self.leafCommonName = CertificateSummary.safeCommonName(leafCert)
-        self.issuerCommonName = CertificateSummary.safeIssuerCommonName(leafCert)
+        self.issuerCommonName = CertificateSummary.safeIssuerCommonName(leafCert,
+                                                                        trust: trust)
         self.sanCount = CertificateSummary.subjectAlternativeNameCount(leafCert)
     }
 }
@@ -220,40 +223,170 @@ private enum CertificateSummary {
         guard let summary = SecCertificateCopySubjectSummary(cert) else {
             return nil
         }
-        
+
         let commonName: String = summary as String
         return redactDomain(commonName)
     }
-    
-    static func safeIssuerCommonName(_ cert: SecCertificate) -> String? {
+
+    static func safeIssuerCommonName(_ leafCert: SecCertificate, trust: SecTrust?) -> String? {
 #if canImport(Security)
-        // SecCertificateCopyValues and kSecOIDX509V1IssuerName are not available in all SDKs.
-        // Prefer using the subject summary of the issuer certificate when available.
-        // Since we only have the leaf certificate here, we cannot traverse to the issuer
-        // without a trust object. Fall back to using the certificate's subject summary
-        // (redacted) as an approximation, otherwise return nil.
-        if let summary = SecCertificateCopySubjectSummary(cert) {
-            let commonName: String = summary as String
-            return redactDomain(commonName)
+        if let trust,
+           let issuerCert = issuerCertificate(from: trust, leaf: leafCert),
+           let issuerSummary = SecCertificateCopySubjectSummary(issuerCert) {
+            return redactDomain(issuerSummary as String)
         }
-#endif
+
+        // fallback (approx): leaf'in subject summary'si (issuer değil!)
+        if let summary = SecCertificateCopySubjectSummary(leafCert) {
+            return redactDomain(summary as String)
+        }
         return nil
+#else
+        _ = leafCert; _ = trust
+        return nil
+#endif
     }
-    
+
     static func subjectAlternativeNameCount(_ cert: SecCertificate) -> Int {
-        // SecCertificateCopyValues and kSecOIDSubjectAltName are not guaranteed to be available.
-        // Without parsing ASN.1, conservatively return 0 when we cannot query SANs.
-        _ = cert // keep parameter used
+#if canImport(Security)
+        let der = SecCertificateCopyData(cert) as Data
+        return countSANEntries(in: der)
+#else
+        _ = cert
         return 0
+#endif
     }
-    
+
+#if canImport(Security)
+    private static func issuerCertificate(from trust: SecTrust, leaf: SecCertificate) -> SecCertificate? {
+        let certs = SecTrustCopyCertificateChain(trust) as? [SecCertificate] ?? []
+        guard certs.count >= 2 else {
+            return nil
+        }
+
+        let leafData = SecCertificateCopyData(leaf) as Data
+        if let idx = certs.firstIndex(where: { (SecCertificateCopyData($0) as Data) == leafData }) {
+            let issuerIdx = idx + 1
+            return issuerIdx < certs.count ? certs[issuerIdx] : nil
+        }
+
+        return certs[1]
+    }
+#endif
+
+
     private static func redactDomain(_ value: String) -> String? {
         let normalized = value.lowercased()
         let labels = normalized.split(separator: ".")
         guard labels.count >= 2 else {
             return nil
         }
-        
+
         return "*." + labels.suffix(2).joined(separator: ".")
     }
+
+#if canImport(Security)
+private static func countSANEntries(in der: Data) -> Int {
+    let oid: [UInt8] = [0x06, 0x03, 0x55, 0x1D, 0x11]
+    let bytes = [UInt8](der)
+
+    var bestCount = 0
+    var i = 0
+    while i + oid.count < bytes.count {
+        if bytes[i..<(i + oid.count)].elementsEqual(oid) {
+            if let count = tryParseSANCount(from: bytes, oidStart: i) {
+                bestCount = max(bestCount, count)
+            }
+        }
+        i += 1
+    }
+    return bestCount
+}
+
+private static func tryParseSANCount(from bytes: [UInt8], oidStart: Int) -> Int? {
+    var idx = oidStart
+    idx += 5
+
+    if idx < bytes.count, bytes[idx] == 0x01 {
+        idx += 1
+        guard let (len, lenBytes) = readDERLength(bytes, at: idx) else {
+            return nil
+        }
+
+        idx += lenBytes + len
+        if idx >= bytes.count {
+            return nil
+        }
+    }
+
+    guard idx < bytes.count, bytes[idx] == 0x04 else {
+        return nil
+    }
+
+    idx += 1
+
+    guard let (octetLen, octetLenBytes) = readDERLength(bytes, at: idx) else {
+        return nil
+    }
+
+    idx += octetLenBytes
+    guard idx + octetLen <= bytes.count else {
+        return nil
+    }
+
+    let innerStart = idx
+    guard octetLen >= 2, bytes[innerStart] == 0x30 else {
+        return nil
+    }
+
+    var innerIdx = innerStart + 1
+    guard let (seqLen, seqLenBytes) = readDERLength(bytes, at: innerIdx) else {
+        return nil
+    }
+
+    innerIdx += seqLenBytes
+
+    let seqEnd = innerIdx + seqLen
+    guard seqEnd <= innerStart + octetLen, seqEnd <= bytes.count else {
+        return nil
+    }
+
+    var count = 0
+    while innerIdx < seqEnd {
+        innerIdx += 1
+        guard let (len, lenBytes) = readDERLength(bytes, at: innerIdx) else {
+            return nil
+        }
+
+        innerIdx += lenBytes + len
+        if innerIdx <= seqEnd { count += 1 } else {
+            return nil
+        }
+    }
+
+    return count
+}
+
+private static func readDERLength(_ bytes: [UInt8], at index: Int) -> (len: Int, lenBytes: Int)? {
+    guard index < bytes.count else {
+        return nil
+    }
+
+    let first = bytes[index]
+    if first & 0x80 == 0 {
+        return (Int(first), 1)
+    }
+    let count = Int(first & 0x7F)
+    guard count > 0, count <= 4, index + count < bytes.count else {
+        return nil
+    }
+
+    var value = 0
+    for i in 0..<count {
+        value = (value << 8) | Int(bytes[index + 1 + i])
+    }
+    return (value, 1 + count)
+}
+#endif
+
 }

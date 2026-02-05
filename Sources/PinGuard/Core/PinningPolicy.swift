@@ -52,7 +52,7 @@ public struct Pin: Hashable, Codable, Sendable {
     }
 }
 
-public struct PinningPolicy: Hashable, Codable {
+public struct PinningPolicy: Hashable, Codable, Sendable {
 
     public let pins: [Pin]
     public let failStrategy: FailStrategy
@@ -70,7 +70,7 @@ public struct PinningPolicy: Hashable, Codable {
     }
 }
 
-public enum HostPattern: Hashable, Codable {
+public enum HostPattern: Hashable, Codable, Sendable {
 
     case exact(String)
     case wildcard(String)
@@ -97,7 +97,7 @@ public enum HostPattern: Hashable, Codable {
     }
 }
 
-public struct HostPolicy: Hashable, Codable {
+public struct HostPolicy: Hashable, Codable, Sendable {
 
     public let pattern: HostPattern
     public let policy: PinningPolicy
@@ -109,7 +109,7 @@ public struct HostPolicy: Hashable, Codable {
     }
 }
 
-public struct PolicySet: Hashable, Codable {
+public struct PolicySet: Hashable, Codable, Sendable {
 
     public let policies: [HostPolicy]
     public let defaultPolicy: PinningPolicy?

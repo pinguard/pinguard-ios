@@ -35,7 +35,7 @@ public struct TrustDecision: Equatable, Sendable {
         case pinningFailed
     }
 
-    let isTrusted: Bool
-    let reason: Reason
-    let events: [PinGuardEvent]
+    public let isTrusted: Bool
+    public let reason: Reason
+    public let events: [PinGuardEvent]
 }

@@ -65,18 +65,24 @@ public final class PinGuardURLSessionDelegate: NSObject, URLSessionDelegate, URL
             switch mtls.provider.clientIdentity(for: host) {
             case .success(let identity, let chain):
                 let credential = URLCredential(identity: identity, certificates: chain, persistence: .forSession)
-                PinGuardLogger.log(.mtlsIdentityUsed(host: host))
+                emit(.mtlsIdentityUsed(host: host), host: host)
                 completionHandler(.useCredential, credential)
             case .renewalRequired:
-                PinGuardLogger.log(.mtlsIdentityMissing(host: host))
+                emit(.mtlsIdentityMissing(host: host), host: host)
                 mtls.onRenewalRequired?()
                 completionHandler(.rejectProtectionSpace, nil)
             case .unavailable:
-                PinGuardLogger.log(.mtlsIdentityMissing(host: host))
+                emit(.mtlsIdentityMissing(host: host), host: host)
                 completionHandler(.rejectProtectionSpace, nil)
             }
         default:
             completionHandler(.performDefaultHandling, nil)
         }
+    }
+
+    private func emit(_ event: PinGuardEvent, host: String) {
+        PinGuardLogger.log(event)
+        let config = pinGuard.currentConfiguration()
+        config.telemetry?(event)
     }
 }
