@@ -6,7 +6,7 @@ public final class PinGuard {
 
     public static let shared = PinGuard()
 
-    public struct Configuration {
+    public struct Configuration: Sendable {
 
         public struct Environment: Hashable, Codable, ExpressibleByStringLiteral, Sendable {
             public let name: String
@@ -24,7 +24,7 @@ public final class PinGuard {
             public static let prod: Environment = "prod"
         }
 
-        public struct EnvironmentConfiguration {
+        public struct EnvironmentConfiguration: @unchecked Sendable {
 
             public let policySet: PolicySet
             public let mtlsConfiguration: MTLSConfiguration?
@@ -38,11 +38,11 @@ public final class PinGuard {
 
         public var environments: [Environment: EnvironmentConfiguration]
         public var current: Environment
-        public var telemetry: ((PinGuardEvent) -> Void)?
+        public var telemetry: (@Sendable (PinGuardEvent) -> Void)?
 
         public init(environments: [Environment: EnvironmentConfiguration],
                     current: Environment,
-                    telemetry: ((PinGuardEvent) -> Void)? = nil) {
+                    telemetry: (@Sendable (PinGuardEvent) -> Void)? = nil) {
             self.environments = environments
             self.current = current
             self.telemetry = telemetry
@@ -61,7 +61,7 @@ public final class PinGuard {
 
         private(set) var environments: [Configuration.Environment: Configuration.EnvironmentConfiguration] = [:]
         private(set) var current: Configuration.Environment = .prod
-        private(set) var telemetry: ((PinGuardEvent) -> Void)?
+        private(set) var telemetry: (@Sendable (PinGuardEvent) -> Void)?
 
         public mutating func environment(_ env: Configuration.Environment,
                                          policySet: PolicySet,
@@ -73,7 +73,7 @@ public final class PinGuard {
             current = env
         }
 
-        public mutating func telemetry(_ handler: @escaping (PinGuardEvent) -> Void) {
+        public mutating func telemetry(_ handler: @Sendable @escaping (PinGuardEvent) -> Void) {
             telemetry = handler
         }
     }
@@ -116,3 +116,4 @@ public final class PinGuard {
         return config
     }
 }
+

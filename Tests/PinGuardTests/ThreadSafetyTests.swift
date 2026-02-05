@@ -5,6 +5,7 @@
 //  Created by PinGuard Refactor on 4.02.2026.
 //
 
+import SwiftUI
 import XCTest
 @testable import PinGuard
 
@@ -22,9 +23,9 @@ final class ThreadSafetyTests: XCTestCase {
 
         // Create different configurations
         let configs = (0..<iterations).map { index in
-            Configuration(
+            PinGuard.Configuration(
                 environments: [
-                    .prod: Configuration.EnvironmentConfiguration(
+                    .prod: PinGuard.Configuration.EnvironmentConfiguration(
                         policySet: PolicySet(policies: [
                             HostPolicy(
                                 pattern: .exact("example\(index).com"),
@@ -41,8 +42,8 @@ final class ThreadSafetyTests: XCTestCase {
         Task {
             await withTaskGroup(of: Void.self) { group in
                 for config in configs {
-                    group.addTask {
-                        pinGuard.update(configuration: config)
+                    group.addTask { @Sendable in
+                        await pinGuard.update(configuration: config)
                         await MainActor.run {
                             expectation.fulfill()
                         }
@@ -72,9 +73,9 @@ final class ThreadSafetyTests: XCTestCase {
         let expectation = expectation(description: "All operations complete")
         expectation.expectedFulfillmentCount = totalOps
 
-        let config = Configuration(
+        let config = PinGuard.Configuration(
             environments: [
-                .prod: Configuration.EnvironmentConfiguration(
+                .prod: PinGuard.Configuration.EnvironmentConfiguration(
                     policySet: PolicySet(policies: [
                         HostPolicy(
                             pattern: .exact("test.com"),
@@ -90,8 +91,10 @@ final class ThreadSafetyTests: XCTestCase {
             await withTaskGroup(of: Void.self) { group in
                 // Add read tasks
                 for _ in 0..<readCount {
-                    group.addTask {
-                        _ = pinGuard.currentConfiguration()
+                    group.addTask { @Sendable in
+                        let _ = await MainActor.run {
+                            pinGuard.currentConfiguration()
+                        }
                         await MainActor.run {
                             expectation.fulfill()
                         }
@@ -100,8 +103,8 @@ final class ThreadSafetyTests: XCTestCase {
 
                 // Add write tasks
                 for _ in 0..<writeCount {
-                    group.addTask {
-                        pinGuard.update(configuration: config)
+                    group.addTask { @Sendable in
+                        await pinGuard.update(configuration: config)
                         await MainActor.run {
                             expectation.fulfill()
                         }
@@ -135,23 +138,39 @@ final class ThreadSafetyTests: XCTestCase {
 
         let evaluator = TrustEvaluator(policySet: policySet)
 
+        // Wrap non-Sendable values in a local @unchecked Sendable container for test purposes
+        struct _UncheckedSendableContext: @unchecked Sendable {
+            let evaluator: TrustEvaluator
+            let policy: PinningPolicy
+            let host: String
+            let chain: CertificateChain
+        }
+
+        let mockChain = CertificateChain(candidates: [])
+
+        let context = _UncheckedSendableContext(
+            evaluator: evaluator,
+            policy: policy,
+            host: "example.com",
+            chain: mockChain
+        )
+
         let iterations = 100
         let expectation = expectation(description: "All evaluations complete")
         expectation.expectedFulfillmentCount = iterations
 
-        // Create a mock trust object (in real tests, use a proper test certificate)
-        let mockChain = CertificateChain(candidates: [])
-
         Task {
             await withTaskGroup(of: Void.self) { group in
                 for _ in 0..<iterations {
-                    group.addTask {
+                    group.addTask { @Sendable in
+                        // Use the unchecked-sendable context so the closure only captures a Sendable value
+                        let ctx = context
                         var events: [PinGuardEvent] = []
-                        _ = evaluator.evaluate(
-                            chain: mockChain,
+                        _ = ctx.evaluator.evaluate(
+                            chain: ctx.chain,
                             systemTrusted: true,
-                            host: "example.com",
-                            policy: policy,
+                            host: ctx.host,
+                            policy: ctx.policy,
                             events: &events
                         )
                         await MainActor.run {
@@ -185,12 +204,19 @@ final class ThreadSafetyTests: XCTestCase {
     // MARK: - PolicyResolver Thread Safety
 
     func testPolicyResolverImmutableAndThreadSafe() async {
+        // Wrap non-Sendable values in a local @unchecked Sendable container for test purposes
+        struct _UncheckedSendableResolverContext: @unchecked Sendable {
+            let resolver: PolicyResolver
+            let host: String
+        }
+
         let policy = PinningPolicy(pins: [Pin(type: .spki, hash: "hash")])
         let policySet = PolicySet(policies: [
             HostPolicy(pattern: .exact("example.com"), policy: policy)
         ])
 
         let resolver = PolicyResolver(policySet: policySet)
+        let ctx = _UncheckedSendableResolverContext(resolver: resolver, host: "example.com")
 
         let iterations = 100
         let expectation = expectation(description: "All resolutions complete")
@@ -199,8 +225,8 @@ final class ThreadSafetyTests: XCTestCase {
         Task {
             await withTaskGroup(of: Void.self) { group in
                 for _ in 0..<iterations {
-                    group.addTask {
-                        _ = resolver.resolve(host: "example.com")
+                    group.addTask { @Sendable in
+                        _ = ctx.resolver.resolve(host: ctx.host)
                         await MainActor.run {
                             expectation.fulfill()
                         }
@@ -212,3 +238,4 @@ final class ThreadSafetyTests: XCTestCase {
         await fulfillment(of: [expectation], timeout: 5.0)
     }
 }
+

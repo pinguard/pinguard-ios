@@ -9,6 +9,7 @@ import XCTest
 @testable import PinGuard
 
 final class PinGuardPolicyTests: XCTestCase {
+
     func testWildcardMatchesSingleLabel() {
         let pattern = HostPattern.parse("*.example.com")
         XCTAssertTrue(HostMatcher.matches(pattern, host: "api.example.com"))

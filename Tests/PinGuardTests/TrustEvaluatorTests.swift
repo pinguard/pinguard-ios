@@ -10,6 +10,7 @@ import Security
 @testable import PinGuard
 
 final class TrustEvaluatorTests: XCTestCase {
+
     func testSPKIHashMatchesExpected() throws {
         let modulus = [UInt8](repeating: 0x01, count: 256)
         let exponent = [UInt8](repeating: 0x01, count: 3)
