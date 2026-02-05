@@ -1,7 +1,13 @@
+//
+//  Events.swift
+//  PinGuard
+//
+//  Created by Çağatay Eğilmez on 2.02.2026.
+//
+
 import Foundation
 
 /// Events emitted during trust evaluation.
-/// These events provide insight into the decision-making process.
 public enum PinGuardEvent: Equatable, Sendable {
 
     case policyMissing(host: String)

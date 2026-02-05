@@ -2,7 +2,7 @@
 //  ThreadSafetyTests.swift
 //  PinGuard
 //
-//  Created by PinGuard Refactor on 4.02.2026.
+//  Created by Çağatay Eğilmez on 4.02.2026.
 //
 
 import SwiftUI

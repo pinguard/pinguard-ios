@@ -1,5 +1,13 @@
+//
+//  Errors.swift
+//  PinGuard
+//
+//  Created by Çağatay Eğilmez on 2.02.2026.
+//
+
 import Foundation
 
+/// Error cases of ssl pinning response or mTLS actions.
 public enum PinGuardError: Error, Equatable {
 
     case invalidHost
@@ -13,6 +21,7 @@ public enum PinGuardError: Error, Equatable {
     case mtlsIdentityUnavailable
 }
 
+/// Trust response struct for announcing certificate is trusted.
 public struct TrustDecision: Equatable, Sendable {
 
     public enum Reason: Equatable, Sendable {
