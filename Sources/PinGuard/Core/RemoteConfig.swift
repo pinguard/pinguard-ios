@@ -29,7 +29,7 @@ public struct RemoteConfigBlob: Codable, Equatable, Sendable {
 }
 
 /// Verifies the signature of a remote configuration blob.
-public protocol RemoteConfigVerifier {
+public protocol RemoteConfigVerifier: Sendable {
 
     func verify(blob: RemoteConfigBlob) -> Bool
 }

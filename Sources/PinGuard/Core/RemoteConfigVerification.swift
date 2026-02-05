@@ -10,9 +10,10 @@ import Foundation
 import Security
 
 public struct HMACRemoteConfigVerifier: RemoteConfigVerifier {
-    private let secretProvider: (String) -> Data?
 
-    public init(secretProvider: @escaping (String) -> Data?) {
+    private let secretProvider: @Sendable (String) -> Data?
+
+    public init(secretProvider: @escaping @Sendable (String) -> Data?) {
         self.secretProvider = secretProvider
     }
 
@@ -33,9 +34,9 @@ public struct HMACRemoteConfigVerifier: RemoteConfigVerifier {
 
 public struct PublicKeyRemoteConfigVerifier: RemoteConfigVerifier {
 
-    private let keyProvider: (String) -> SecKey?
+    private let keyProvider: @Sendable (String) -> SecKey?
 
-    public init(keyProvider: @escaping (String) -> SecKey?) {
+    public init(keyProvider: @escaping @Sendable (String) -> SecKey?) {
         self.keyProvider = keyProvider
     }
 

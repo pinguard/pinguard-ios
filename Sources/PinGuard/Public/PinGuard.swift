@@ -8,8 +8,7 @@
 import Foundation
 import Security
 
-@MainActor
-public final class PinGuard {
+public final class PinGuard: @unchecked Sendable {
 
     public static let shared = PinGuard()
 
@@ -31,7 +30,7 @@ public final class PinGuard {
             public static let prod: Environment = "prod"
         }
 
-        public struct EnvironmentConfiguration: @unchecked Sendable {
+        public struct EnvironmentConfiguration: Sendable {
 
             public let policySet: PolicySet
             public let mtlsConfiguration: MTLSConfiguration?
@@ -86,7 +85,7 @@ public final class PinGuard {
     }
 
     private let lock = NSLock()
-    nonisolated(unsafe) private var configuration: Configuration
+    private var configuration: Configuration
 
     private init() {
         self.configuration = Configuration(environments: [:], current: .prod)
@@ -103,11 +102,13 @@ public final class PinGuard {
 
     public func update(configuration: Configuration) {
         lock.lock()
+        defer {
+            lock.unlock()
+        }
         self.configuration = configuration
-        lock.unlock()
     }
 
-    nonisolated public func evaluate(serverTrust: SecTrust, host: String) -> TrustDecision {
+    public func evaluate(serverTrust: SecTrust, host: String) -> TrustDecision {
         let config = currentConfiguration()
         let evaluator = TrustEvaluator(policySet: config.activePolicySet) { event in
             PinGuardLogger.log(event)
@@ -116,11 +117,12 @@ public final class PinGuard {
         return evaluator.evaluate(serverTrust: serverTrust, host: host)
     }
 
-    nonisolated public func currentConfiguration() -> Configuration {
+    public func currentConfiguration() -> Configuration {
         lock.lock()
-        let config = configuration
-        lock.unlock()
-        return config
+        defer {
+            lock.unlock()
+        }
+        return configuration
     }
 }
 

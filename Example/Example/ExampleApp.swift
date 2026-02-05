@@ -11,7 +11,6 @@ import PinGuard
 @main
 struct ExampleApp: App {
     init() {
-        // Initialize PinGuard with example configuration
         PinGuard.configure { builder in
             let activePin = Pin(type: .spki, hash: "Y7EKzelfzqmyMnNRDIX8cecAf6wj1nk7nT25ws/qnVo=", role: .primary)
             let backupPin = Pin(type: .spki, hash: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", role: .backup)
@@ -20,7 +19,7 @@ struct ExampleApp: App {
                 pins: [activePin, backupPin],
                 failStrategy: .permissive,
                 requireSystemTrust: true,
-                allowSystemTrustFallback: false
+                allowSystemTrustFallback: true
             )
 
             let policySet = PolicySet(policies: [
@@ -32,7 +31,6 @@ struct ExampleApp: App {
             builder.environment(.prod, policySet: policySet, mtls: nil)
             builder.selectEnvironment(.dev)
 
-            // Optional telemetry
             builder.telemetry { event in
                 print("[PinGuard] \(event)")
             }
