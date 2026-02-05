@@ -2,7 +2,7 @@
 //  ConfigurationDemoView.swift
 //  Example
 //
-//  Created by PinGuard Example on 4.02.2026.
+//  Created by Çağatay Eğilmez on 4.02.2026
 //
 
 import SwiftUI
