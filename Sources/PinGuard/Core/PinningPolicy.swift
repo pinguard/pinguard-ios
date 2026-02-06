@@ -9,28 +9,46 @@ import Foundation
 
 public enum FailStrategy: String, Codable, Sendable {
 
+    /// Fail immediately when trust or pinning checks fail.
     case strict
+
+    /// Allow the connection to proceed despite failures under a permissive policy.
     case permissive
 }
 
 public enum PinType: String, Codable, Sendable {
 
+    /// Pin is a hash of the certificate's Subject Public Key Info (SPKI).
     case spki
+
+    /// Pin is a hash of the full certificate DER data.
     case certificate
+
+    /// Pin targets a CA certificate (intermediate or root) in the chain.
     case ca
 }
 
 public enum PinRole: String, Codable, Sendable {
 
+    /// Primary pin used for normal validation.
     case primary
+
+    /// Backup pin used for key rotation or as a fallback.
     case backup
 }
 
 public enum PinScope: String, Codable, Sendable {
 
+    /// Applies to the leaf (end-entity) certificate.
     case leaf
+
+    /// Applies to intermediate CA certificates.
     case intermediate
+
+    /// Applies to the root CA certificate.
     case root
+
+    /// Applies to any certificate in the chain.
     case any
 }
 
@@ -72,7 +90,14 @@ public struct PinningPolicy: Hashable, Codable, Sendable {
 
 public enum HostPattern: Hashable, Codable, Sendable {
 
+    /// Matches only the exact hostname value.
+    ///
+    /// - Parameter value: The exact hostname to match.
     case exact(String)
+
+    /// Matches any single-label subdomain of the given suffix (e.g., *.example.com).
+    ///
+    /// - Parameter value: The suffix domain to match (without the "*." prefix).
     case wildcard(String)
 
     public var rawValue: String {
@@ -84,6 +109,9 @@ public enum HostPattern: Hashable, Codable, Sendable {
         }
     }
 
+    /// Parses a host pattern string into a HostPattern, interpreting "*." as a wildcard.
+    ///
+    /// - Parameter pattern: The host pattern string to parse.
     public static func parse(_ pattern: String) -> HostPattern {
         let normalized = HostPattern.normalizeHost(pattern)
         if normalized.hasPrefix("*.") {
@@ -92,6 +120,9 @@ public enum HostPattern: Hashable, Codable, Sendable {
         return .exact(normalized)
     }
 
+    /// Normalizes a host for matching by lowercasing and trimming leading/trailing dots.
+    ///
+    /// - Parameter host: The host string to normalize.
     static func normalizeHost(_ host: String) -> String {
         host.lowercased().trimmingCharacters(in: CharacterSet(charactersIn: "."))
     }

@@ -22,6 +22,12 @@ public final class PinGuardURLSessionDelegate: NSObject, URLSessionDelegate, URL
         self.init(pinGuard: .shared, mtls: mtls)
     }
 
+    /// Handles session-level authentication challenges (server trust or client certificate).
+    ///
+    /// - Parameters:
+    ///   - session: The URLSession receiving the challenge.
+    ///   - challenge: The authentication challenge to handle.
+    ///   - completionHandler: Closure to call with the disposition and optional credential.
     nonisolated public func urlSession(_ session: URLSession,
                                        didReceive challenge: URLAuthenticationChallenge,
                                        completionHandler: @escaping (URLSession.AuthChallengeDisposition,
@@ -29,6 +35,13 @@ public final class PinGuardURLSessionDelegate: NSObject, URLSessionDelegate, URL
         handle(challenge: challenge, completionHandler: completionHandler)
     }
 
+    /// Handles task-level authentication challenges (server trust or client certificate).
+    ///
+    /// - Parameters:
+    ///   - session: The URLSession associated with the task.
+    ///   - task: The task that received the challenge.
+    ///   - challenge: The authentication challenge to handle.
+    ///   - completionHandler: Closure to call with the disposition and optional credential.
     nonisolated public func urlSession(_ session: URLSession,
                                        task: URLSessionTask,
                                        didReceive challenge: URLAuthenticationChallenge,
@@ -37,6 +50,11 @@ public final class PinGuardURLSessionDelegate: NSObject, URLSessionDelegate, URL
         handle(challenge: challenge, completionHandler: completionHandler)
     }
 
+    /// Processes an authentication challenge and decides how to respond.
+    ///
+    /// - Parameters:
+    ///   - challenge: The authentication challenge to process.
+    ///   - completionHandler: Closure to call with the disposition and optional credential.
     nonisolated private func handle(challenge: URLAuthenticationChallenge,
                                     completionHandler: @escaping (URLSession.AuthChallengeDisposition,
                                                                   URLCredential?) -> Void) {
@@ -80,6 +98,11 @@ public final class PinGuardURLSessionDelegate: NSObject, URLSessionDelegate, URL
         }
     }
 
+    /// Emits a PinGuard event to logging and telemetry for the specified host.
+    ///
+    /// - Parameters:
+    ///   - event: The event to emit.
+    ///   - host: The host associated with the event.
     private func emit(_ event: PinGuardEvent, host: String) {
         PinGuardLogger.log(event)
         let config = pinGuard.currentConfiguration()
