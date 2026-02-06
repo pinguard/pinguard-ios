@@ -10,7 +10,14 @@ import Foundation
 /// Signature scheme for remote configuration blobs.
 public enum RemoteConfigSignature: Codable, Equatable, Sendable {
 
+    /// HMAC-SHA256 signature verified with a shared secret.
+    ///
+    /// - Parameter secretID: The identifier of the shared secret used to compute/verify the HMAC.
     case hmacSHA256(secretID: String)
+
+    /// Asymmetric signature verified with a public key.
+    ///
+    /// - Parameter keyID: The identifier of the public key used to verify the signature.
     case publicKey(keyID: String)
 }
 
@@ -31,6 +38,9 @@ public struct RemoteConfigBlob: Codable, Equatable, Sendable {
 /// Verifies the signature of a remote configuration blob.
 public protocol RemoteConfigVerifier: Sendable {
 
+    /// Verifies the signature of the provided remote configuration blob.
+    ///
+    /// - Parameter blob: The signed configuration blob to verify.
     func verify(blob: RemoteConfigBlob) -> Bool
 }
 

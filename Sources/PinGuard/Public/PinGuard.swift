@@ -69,16 +69,28 @@ public final class PinGuard: @unchecked Sendable {
         private(set) var current: Configuration.Environment = .prod
         private(set) var telemetry: (@Sendable (PinGuardEvent) -> Void)?
 
+        /// Adds an environment configuration to the builder.
+        ///
+        /// - Parameters:
+        ///   - env: The environment identifier to configure.
+        ///   - policySet: The pinning policy set to use for this environment.
+        ///   - mtls: Optional mTLS configuration for this environment.
         public mutating func environment(_ env: Configuration.Environment,
                                          policySet: PolicySet,
                                          mtls: MTLSConfiguration? = nil) {
             environments[env] = Configuration.EnvironmentConfiguration(policySet: policySet, mtlsConfiguration: mtls)
         }
 
+        /// Selects the active environment for the resulting configuration.
+        ///
+        /// - Parameter env: The environment to set as current.
         public mutating func selectEnvironment(_ env: Configuration.Environment) {
             current = env
         }
 
+        /// Sets a telemetry callback to receive emitted PinGuard events.
+        ///
+        /// - Parameter handler: A closure invoked for each event.
         public mutating func telemetry(_ handler: @Sendable @escaping (PinGuardEvent) -> Void) {
             telemetry = handler
         }
@@ -91,6 +103,9 @@ public final class PinGuard: @unchecked Sendable {
         self.configuration = Configuration(environments: [:], current: .prod)
     }
 
+    /// Configures the shared PinGuard instance using a builder closure.
+    ///
+    /// - Parameter build: A closure that populates the builder with environments and settings.
     public static func configure(_ build: (inout Builder) -> Void) {
         var builder = Builder()
         build(&builder)
@@ -100,6 +115,9 @@ public final class PinGuard: @unchecked Sendable {
         shared.update(configuration: config)
     }
 
+    /// Updates the current configuration in a thread-safe manner.
+    ///
+    /// - Parameter configuration: The new configuration to apply.
     public func update(configuration: Configuration) {
         lock.lock()
         defer {
@@ -108,6 +126,11 @@ public final class PinGuard: @unchecked Sendable {
         self.configuration = configuration
     }
 
+    /// Evaluates server trust and pinning for the specified host.
+    ///
+    /// - Parameters:
+    ///   - serverTrust: The SecTrust object representing the server's certificate chain.
+    ///   - host: The hostname being evaluated.
     public func evaluate(serverTrust: SecTrust, host: String) -> TrustDecision {
         let config = currentConfiguration()
         let evaluator = TrustEvaluator(policySet: config.activePolicySet) { event in
@@ -117,6 +140,7 @@ public final class PinGuard: @unchecked Sendable {
         return evaluator.evaluate(serverTrust: serverTrust, host: host)
     }
 
+    /// Returns the current PinGuard configuration.
     public func currentConfiguration() -> Configuration {
         lock.lock()
         defer {

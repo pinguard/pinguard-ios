@@ -9,13 +9,25 @@ import Foundation
 import Security
 
 public enum ClientCertificateSource: Sendable {
-    
+
+    /// PKCS12 bundle containing the client identity and certificates.
+    ///
+    /// - Parameters:
+    ///   - data: The raw PKCS12 data containing the identity.
+    ///   - password: The passphrase used to decrypt the PKCS12.
     case pkcs12(data: Data, password: String)
+
+    /// Identity stored in the Keychain, referenced by an application tag.
+    ///
+    /// - Parameter identityTag: The application tag used to look up the identity in the Keychain.
     case keychain(identityTag: Data)
 }
 
 public struct ClientCertificateLoader {
-    
+
+    /// Loads a client identity from the specified source.
+    ///
+    /// - Parameter source: The source from which to load the client identity.
     public static func loadIdentity(from source: ClientCertificateSource) -> ClientIdentityResult {
         switch source {
         case .pkcs12(let data, let password):
@@ -24,7 +36,12 @@ public struct ClientCertificateLoader {
             return loadFromKeychain(tag: identityTag)
         }
     }
-    
+
+    /// Loads a client identity from a PKCS12 data blob.
+    ///
+    /// - Parameters:
+    ///   - data: The PKCS12 data containing the identity and certificates.
+    ///   - password: The passphrase used to decrypt the PKCS12.
     private static func loadPKCS12(data: Data, password: String) -> ClientIdentityResult {
         let options = [kSecImportExportPassphrase as String: password]
         var items: CFArray?
@@ -32,17 +49,20 @@ public struct ClientCertificateLoader {
         guard status == errSecSuccess, let array = items as? [[String: Any]] else {
             return .unavailable
         }
-        
+
         guard let first = array.first,
               let identityRef = first[kSecImportItemIdentity as String] as CFTypeRef? else {
             return .unavailable
         }
-        
+
         let identity: SecIdentity = unsafeDowncast(identityRef, to: SecIdentity.self)
         let chain = (first[kSecImportItemCertChain as String] as? [SecCertificate]) ?? []
         return .success(identity: identity, certificateChain: chain)
     }
-    
+
+    /// Loads a client identity from the Keychain using an application tag.
+    ///
+    /// - Parameter tag: The application tag associated with the stored identity.
     private static func loadFromKeychain(tag: Data) -> ClientIdentityResult {
         let query: [String: Any] = [
             kSecClass as String: kSecClassIdentity,
@@ -73,7 +93,10 @@ public struct StaticClientCertificateProvider: ClientCertificateProvider, Sendab
     public init(source: ClientCertificateSource) {
         self.source = source
     }
-    
+
+    /// Provides a client identity for the given host using the configured source.
+    ///
+    /// - Parameter host: The hostname requesting a client identity.
     public func clientIdentity(for host: String) -> ClientIdentityResult {
         ClientCertificateLoader.loadIdentity(from: source)
     }

@@ -11,6 +11,9 @@ import Security
 
 public enum PinHasher {
 
+    /// Computes a Base64-encoded SHA-256 hash of the key's Subject Public Key Info (SPKI).
+    ///
+    /// - Parameter key: The SecKey whose SPKI will be hashed.
     public static func spkiHash(for key: SecKey) throws -> String {
         guard let keyData = SecKeyCopyExternalRepresentation(key, nil) as Data? else {
             throw PinGuardError.unsupportedKeyType
@@ -25,11 +28,17 @@ public enum PinHasher {
         return sha256Base64(spki)
     }
 
+    /// Computes a Base64-encoded SHA-256 hash of the certificate's DER data.
+    ///
+    /// - Parameter certificate: The certificate to hash.
     public static func certificateHash(for certificate: SecCertificate) -> String {
         let data = SecCertificateCopyData(certificate) as Data
         return sha256Base64(data)
     }
 
+    /// Computes the Base64-encoded SHA-256 digest of the provided data.
+    ///
+    /// - Parameter data: The raw bytes to hash.
     private static func sha256Base64(_ data: Data) -> String {
         let digest = SHA256.hash(data: data)
         return Data(digest).base64EncodedString()
@@ -38,6 +47,12 @@ public enum PinHasher {
 
 enum SubjectPublicKeyInfoBuilder {
 
+    /// Builds an ASN.1 SubjectPublicKeyInfo (SPKI) structure from the provided key information.
+    ///
+    /// - Parameters:
+    ///   - keyType: The SecKey type identifier string (e.g., kSecAttrKeyTypeRSA, kSecAttrKeyTypeECSECPrimeRandom).
+    ///   - attributes: The key attributes used to determine parameters (e.g., EC curve size).
+    ///   - keyBytes: The raw public key bytes.
     static func buildSPKI(keyType: String, attributes: NSDictionary, keyBytes: Data) throws -> Data {
         let algorithmIdentifier: [UInt8]
         if keyType == (kSecAttrKeyTypeRSA as String) {
@@ -90,14 +105,23 @@ enum SubjectPublicKeyInfoBuilder {
 
 enum ASN1 {
 
+    /// Encodes the given content as an ASN.1 SEQUENCE using DER length encoding.
+    ///
+    /// - Parameter content: The sequence contents to be wrapped.
     static func sequence(_ content: [UInt8]) -> [UInt8] {
         [0x30] + lengthBytes(content.count) + content
     }
 
+    /// Encodes the given content as an ASN.1 BIT STRING with zero unused bits.
+    ///
+    /// - Parameter content: The bit string payload.
     static func bitString(_ content: [UInt8]) -> [UInt8] {
         [0x03] + lengthBytes(content.count + 1) + [0x00] + content
     }
 
+    /// Encodes a length value using ASN.1 DER length rules.
+    ///
+    /// - Parameter length: The length to encode.
     private static func lengthBytes(_ length: Int) -> [UInt8] {
         if length < 128 {
             return [UInt8(length)]
