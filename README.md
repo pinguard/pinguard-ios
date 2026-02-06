@@ -915,7 +915,7 @@ We welcome contributions! See [`CONTRIBUTING.md`](CONTRIBUTING.md) for guideline
 
 ## Security
 
-**Reporting vulnerabilities:** Email security@pinguard.dev (do not open public issues for security vulnerabilities).
+**Reporting vulnerabilities:** Email cagatayegilmez08@gmail.com (do not open public issues for security vulnerabilities).
 
 **Security best practices when using PinGuard:**
 1. Always use signed remote configuration (never unsigned)
