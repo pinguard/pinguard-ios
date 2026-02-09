@@ -5,17 +5,16 @@
 //  Created by Çağatay Eğilmez on 4.02.2026
 //
 
-import SwiftUI
 import PinGuard
+import SwiftUI
 
 struct EventsDemoView: View {
     @State private var events: [String] = []
 
     var body: some View {
-        DemoViewTemplate(
-            title: "Events & Telemetry",
-            description: "Capture and log all PinGuard events for monitoring and debugging.",
-            codeSnippet: """
+        DemoViewTemplate(title: "Events & Telemetry",
+                         description: "Capture and log all PinGuard events for monitoring and debugging.",
+                         codeSnippet: """
 PinGuard.configure { builder in
     // ... policy setup ...
 
@@ -38,11 +37,9 @@ PinGuard.configure { builder in
 
 // Or use built-in logger
 PinGuardLogger.log(event)
-""",
-            action: {
-                await performEventsDemo()
-            }
-        ) {
+""") {
+            await performEventsDemo()
+        } content: {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Event Types:")
                     .font(.headline)
@@ -83,11 +80,8 @@ PinGuardLogger.log(event)
 @MainActor
 func performEventsDemo() async -> String {
     var output = ""
-    var capturedEvents: [PinGuardEvent] = []
-
     output += "=== PinGuard Events ===\n\n"
 
-    // Configure with telemetry
     PinGuard.configure { builder in
         let pin = Pin(type: .spki, hash: "TEST_HASH")
         let policy = PinningPolicy(pins: [pin])
@@ -97,7 +91,9 @@ func performEventsDemo() async -> String {
         builder.selectEnvironment(.dev)
 
         builder.telemetry { event in
-            capturedEvents.append(event)
+            Task { @MainActor in
+                printEvent(event)
+            }
         }
     }
 
@@ -133,8 +129,33 @@ func performEventsDemo() async -> String {
     return output
 }
 
-#Preview {
-    NavigationView {
-        EventsDemoView()
+private func printEvent(_ event: PinGuardEvent) {
+    var eventDescription = "Unknown event"
+    switch event {
+    case .policyMissing(let host):
+        eventDescription = "Policy missing for \(host)"
+    case .systemTrustEvaluated(let host, let isTrusted):
+        eventDescription = "Trust for \(host) is \(isTrusted ? "trusted" : "not trusted")"
+    case .systemTrustFailed(let host, let error):
+        eventDescription = "Trust evaluation for \(host) failed: \(error ?? "")"
+    case .systemTrustFailedPermissive(let host):
+        eventDescription = "Trust evaluation for \(host) failed in permissive mode"
+    case .chainSummary(let host, let summary):
+        eventDescription = "Trust evaluation for \(host): \(summary)"
+    case .pinMatched(let host, let pins):
+        eventDescription = "Pin(s) for \(host) match: \(pins.map(\.hash).joined(separator: ", "))"
+    case .pinMismatch(let host):
+        eventDescription = "No pin(s) found for \(host)"
+    case .pinMismatchAllowedByFallback(let host):
+        eventDescription = "No pin(s) found for \(host), falling back"
+    case .pinMismatchPermissive(let host):
+        eventDescription = "No pin(s) found for \(host), falling back (permissive mode)"
+    case .pinSetEmpty(let host):
+        eventDescription = "No pins set for \(host)"
+    case .mtlsIdentityUsed(let host):
+        eventDescription = "MTLS identity for \(host) is being used"
+    case .mtlsIdentityMissing(let host):
+        eventDescription = "No MTLS identity available for \(host)"
     }
+    print(eventDescription)
 }

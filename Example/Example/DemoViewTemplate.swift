@@ -22,38 +22,23 @@ struct DemoViewTemplate<Content: View>: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Description")
-                        .font(.headline)
-                    Text(description)
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                }
+                descriptionStack()
 
                 Divider()
 
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Code")
-                        .font(.headline)
-                    Text(codeSnippet)
-                        .font(.system(.caption, design: .monospaced))
-                        .padding()
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color(.systemGray6))
-                        .cornerRadius(8)
-                }
+                codeStack()
 
                 Divider()
 
                 content
 
-                Button(action: {
+                Button {
                     Task {
                         isRunning = true
                         output = await action()
                         isRunning = false
                     }
-                }) {
+                } label: {
                     HStack {
                         if isRunning {
                             ProgressView()
@@ -79,7 +64,7 @@ struct DemoViewTemplate<Content: View>: View {
                             .font(.system(.caption, design: .monospaced))
                             .padding()
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color(.systemGray6))
+                            .background(Color.secondary.opacity(0.15))
                             .cornerRadius(8)
                     }
                 }
@@ -87,6 +72,33 @@ struct DemoViewTemplate<Content: View>: View {
             .padding()
         }
         .navigationTitle(title)
+        #if os(iOS) || os(tvOS) || os(visionOS)
         .navigationBarTitleDisplayMode(.inline)
+        #endif
+    }
+
+    @ViewBuilder
+    private func descriptionStack() -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Description")
+                .font(.headline)
+            Text(description)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+        }
+    }
+
+    @ViewBuilder
+    private func codeStack() -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Code")
+                .font(.headline)
+            Text(codeSnippet)
+                .font(.system(.caption, design: .monospaced))
+                .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.secondary.opacity(0.15))
+                .cornerRadius(8)
+        }
     }
 }

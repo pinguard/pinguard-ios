@@ -5,18 +5,17 @@
 //  Created by Çağatay Eğilmez on 4.02.2026
 //
 
-import SwiftUI
 import PinGuard
+import SwiftUI
 
 struct EnvironmentDemoView: View {
     @State private var currentEnv: String = "Loading..."
     @State private var policyCount: Int = 0
 
     var body: some View {
-        DemoViewTemplate(
-            title: "Environment Management",
-            description: "Dynamically switch between dev, uat, and prod environments at runtime.",
-            codeSnippet: """
+        DemoViewTemplate(title: "Environment Management",
+                         description: "Dynamically switch between dev, uat, and prod environments at runtime.",
+                         codeSnippet: """
 // Configure multiple environments
 PinGuard.configure { builder in
     builder.environment(.dev, policySet: devPolicies)
@@ -36,11 +35,9 @@ PinGuard.shared.update(configuration: newConfig)
 let config = PinGuard.shared.currentConfiguration()
 print("Current: \\(config.current.name)")
 print("Policies: \\(config.activePolicySet.policies.count)")
-""",
-            action: {
-                await performEnvironmentDemo()
-            }
-        ) {
+""") {
+            await performEnvironmentDemo()
+        } content: {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Current Environment:")
                     .font(.headline)
@@ -57,7 +54,7 @@ print("Policies: \\(config.activePolicySet.policies.count)")
                         .foregroundColor(.secondary)
                 }
                 .padding()
-                .background(Color(.systemGray6))
+                .background(Color.secondary.opacity(0.15))
                 .cornerRadius(8)
 
                 Divider()
@@ -125,17 +122,20 @@ func performEnvironmentDemo() async -> String {
 
         builder.environment(.dev, policySet: PolicySet(policies: [
             HostPolicy(pattern: .exact("dev.example.com"),
-                      policy: PinningPolicy(pins: [devPin], failStrategy: .permissive))
+                       policy: PinningPolicy(pins: [devPin],
+                                             failStrategy: .permissive))
         ]))
 
         builder.environment(.uat, policySet: PolicySet(policies: [
             HostPolicy(pattern: .exact("uat.example.com"),
-                      policy: PinningPolicy(pins: [uatPin], failStrategy: .strict))
+                       policy: PinningPolicy(pins: [uatPin],
+                                             failStrategy: .strict))
         ]))
 
         builder.environment(.prod, policySet: PolicySet(policies: [
             HostPolicy(pattern: .exact("api.example.com"),
-                      policy: PinningPolicy(pins: [prodPin], failStrategy: .strict))
+                       policy: PinningPolicy(pins: [prodPin],
+                                             failStrategy: .strict))
         ]))
 
         builder.selectEnvironment(.dev)

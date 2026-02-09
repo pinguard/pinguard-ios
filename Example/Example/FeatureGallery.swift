@@ -105,7 +105,3 @@ struct FeatureGalleryView: View {
         }
     }
 }
-
-#Preview {
-    FeatureGalleryView()
-}

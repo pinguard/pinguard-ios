@@ -5,8 +5,8 @@
 //  Created by Çağatay Eğilmez on 3.02.2026.
 //
 
-import SwiftUI
 import PinGuard
+import SwiftUI
 
 @main
 struct ExampleApp: App {

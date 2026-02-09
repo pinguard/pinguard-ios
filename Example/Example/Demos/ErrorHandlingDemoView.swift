@@ -5,15 +5,14 @@
 //  Created by Çağatay Eğilmez on 4.02.2026
 //
 
-import SwiftUI
 import PinGuard
+import SwiftUI
 
 struct ErrorHandlingDemoView: View {
     var body: some View {
-        DemoViewTemplate(
-            title: "Error Handling",
-            description: "Handle all PinGuardError types and implement recovery strategies.",
-            codeSnippet: """
+        DemoViewTemplate(title: "Error Handling",
+                         description: "Handle all PinGuardError types and implement recovery strategies.",
+                         codeSnippet: """
 do {
     let hash = try PinHasher.spkiHash(for: key)
     // Use hash...
@@ -43,11 +42,9 @@ if !decision.isTrusted {
         break
     }
 }
-""",
-            action: {
-                await performErrorHandlingDemo()
-            }
-        ) {
+""") {
+            await performErrorHandlingDemo()
+        } content: {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Error Types:")
                     .font(.headline)
@@ -122,15 +119,9 @@ func performErrorHandlingDemo() async -> String {
         (.pinningFailed, "❌ Error - Pin validation failed")
     ]
 
-    for (reason, description) in reasons {
-        output += "\(description)\n"
+    reasons.forEach { reason in
+        output += "\(reason.1)\n"
     }
 
     return output
-}
-
-#Preview {
-    NavigationView {
-        ErrorHandlingDemoView()
-    }
 }
