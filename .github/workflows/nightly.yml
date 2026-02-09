@@ -200,31 +200,34 @@ jobs:
         with:
           script: |
             const { owner, repo } = context.repo;
-            const issues = await github.rest.issues.listForRepo({
-              owner, repo, state: 'open', labels: 'nightly-build-failure', per_page: 1
-            });
+            const runUrl = `https://github.com/${owner}/${repo}/actions/runs/${context.runId}`;
 
-            if (issues.data.length > 0) {
+            // Avoid spamming: create only if no open issue exists
+            const q = `repo:${owner}/${repo} is:issue is:open in:title "Nightly Build Failed"`;
+            const res = await github.rest.search.issuesAndPullRequests({ q, per_page: 1 });
+            if (res.data.items.length > 0) {
               core.info('An open nightly failure issue already exists. Skipping creation.');
               return;
             }
 
-            const runUrl = `https://github.com/${owner}/${repo}/actions/runs/${context.runId}`;
+            const body = [
+              '## Nightly Build Failure',
+              '',
+              'Scheduled nightly build failed.',
+              '',
+              `- Run: ${runUrl}`,
+              `- Date: ${new Date().toISOString().split('T')[0]}`,
+              '',
+              'Next:',
+              '1) Check logs',
+              '2) Fix root cause',
+              '3) Close this issue'
+            ].join('\n');
+
             await github.rest.issues.create({
               owner, repo,
               title: '🔴 Nightly Build Failed',
-              labels: ['nightly-build-failure', 'bug'],
-              body: `## Nightly Build Failure
-
-Scheduled nightly build failed.
-
-- Run: ${runUrl}
-- Date: ${new Date().toISOString().split('T')[0]}
-
-Next:
-1) Check logs
-2) Fix root cause
-3) Close this issue`
+              body
             });
 
   nightly-success:
