@@ -228,7 +228,10 @@ jobs:
 
           let package = Package(
               name: "TestIntegration",
-              platforms: [.iOS(.v15)],
+              platforms: [
+                  .iOS(.v15),
+                  .macOS(.v12)
+              ],
               dependencies: [
                   .package(name: "pinguard-ios", path: "__WORKSPACE__")
               ],
