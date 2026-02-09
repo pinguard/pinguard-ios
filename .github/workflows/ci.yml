@@ -90,11 +90,6 @@ jobs:
   example-app-test:
     name: Example App (iOS Simulator)
     runs-on: macos-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        destination:
-          - platform=iOS Simulator,name=iPhone 15 Pro
     steps:
       - name: Checkout
         uses: actions/checkout@v4.2.2
@@ -107,14 +102,45 @@ jobs:
       - name: List available simulators
         run: xcrun simctl list devices available
 
-      - name: Sanitize destination for cache key
+      - name: Pick an available iPhone simulator (dynamic)
         shell: bash
         run: |
           set -euo pipefail
-          # "platform=iOS Simulator,name=iPhone 15 Pro" -> "platform=iOS_Simulator-name=iPhone_15_Pro"
-          DEST_KEY="$(echo '${{ matrix.destination }}' | tr ', ' '-_')"
-          echo "DEST_KEY=$DEST_KEY" >> "$GITHUB_ENV"
-          echo "DEST_KEY=$DEST_KEY"
+
+          UDID="$(python3 - <<'PY'
+          import json, subprocess
+          data = json.loads(subprocess.check_output(["xcrun","simctl","list","-j","devices","available"]))
+          prefs = ["iPhone 16 Pro", "iPhone 16", "iPhone 17 Pro", "iPhone 17"]
+
+          def all_devices():
+              for _, devices in data["devices"].items():
+                  for d in devices:
+                      if d.get("isAvailable"):
+                          yield d
+
+          # Prefer known iPhones
+          for preferred in prefs:
+              for d in all_devices():
+                  if d.get("name") == preferred:
+                      print(d["udid"])
+                      raise SystemExit
+
+          # Fallback: first available iPhone
+          for d in all_devices():
+              if str(d.get("name","")).startswith("iPhone"):
+                  print(d["udid"])
+                  raise SystemExit
+
+          raise SystemExit("No available iPhone simulator found")
+          PY
+          )"
+
+          echo "SIM_DEST=platform=iOS Simulator,id=$UDID" >> "$GITHUB_ENV"
+          echo "DEST_KEY=iossim-$UDID" >> "$GITHUB_ENV"
+
+          echo "Chosen UDID: $UDID"
+          echo "SIM_DEST: platform=iOS Simulator,id=$UDID"
+          echo "DEST_KEY: iossim-$UDID"
 
       - name: Cache Example SPM
         uses: actions/cache@v4.2.2
@@ -140,7 +166,7 @@ jobs:
           xcodebuild build \
             -project Example.xcodeproj \
             -scheme Example \
-            -destination "${{ matrix.destination }}" \
+            -destination "${{ env.SIM_DEST }}" \
             -configuration Debug \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
@@ -154,7 +180,7 @@ jobs:
           xcodebuild test \
             -project Example.xcodeproj \
             -scheme Example \
-            -destination "${{ matrix.destination }}" \
+            -destination "${{ env.SIM_DEST }}" \
             -configuration Debug \
             -enableCodeCoverage YES \
             CODE_SIGN_IDENTITY="" \
@@ -166,7 +192,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4.5.0
         with:
-          name: example-logs-${{ strategy.job-index }}
+          name: example-logs
           path: |
             Example/build.log
             Example/test.log
