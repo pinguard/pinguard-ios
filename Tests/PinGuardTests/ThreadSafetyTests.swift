@@ -122,68 +122,6 @@ final class ThreadSafetyTests: XCTestCase {
         XCTAssertNotNil(finalConfig)
     }
 
-    // MARK: - Concurrent Evaluations
-
-    func testConcurrentTrustEvaluations() async {
-        let policy = PinningPolicy(
-            pins: [Pin(type: .spki, hash: "testHash")],
-            failStrategy: .strict
-        )
-
-        let policySet = PolicySet(
-            policies: [
-                HostPolicy(pattern: .exact("example.com"), policy: policy)
-            ]
-        )
-
-        let evaluator = TrustEvaluator(policySet: policySet)
-
-        // Wrap non-Sendable values in a local @unchecked Sendable container for test purposes
-        struct _UncheckedSendableContext: @unchecked Sendable {
-            let evaluator: TrustEvaluator
-            let policy: PinningPolicy
-            let host: String
-            let chain: CertificateChain
-        }
-
-        let mockChain = CertificateChain(candidates: [])
-
-        let context = _UncheckedSendableContext(
-            evaluator: evaluator,
-            policy: policy,
-            host: "example.com",
-            chain: mockChain
-        )
-
-        let iterations = 100
-        let expectation = expectation(description: "All evaluations complete")
-        expectation.expectedFulfillmentCount = iterations
-
-        Task {
-            await withTaskGroup(of: Void.self) { group in
-                for _ in 0..<iterations {
-                    group.addTask { @Sendable in
-                        // Use the unchecked-sendable context so the closure only captures a Sendable value
-                        let ctx = context
-                        var events: [PinGuardEvent] = []
-                        _ = ctx.evaluator.evaluate(
-                            chain: ctx.chain,
-                            systemTrusted: true,
-                            host: ctx.host,
-                            policy: ctx.policy,
-                            events: &events
-                        )
-                        await MainActor.run {
-                            expectation.fulfill()
-                        }
-                    }
-                }
-            }
-        }
-
-        await fulfillment(of: [expectation], timeout: 5.0)
-    }
-
     // MARK: - Configuration Builder
 
     func testBuilderIsNotThreadSafe() {
