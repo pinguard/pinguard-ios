@@ -47,6 +47,7 @@ public protocol RemoteConfigVerifier: Sendable {
 /// Threat model documentation for remote configuration.
 public enum RemoteConfigThreatModel {
 
+    /// User warning shown when a remote configuration is not signed.
     public static let unsignedConfigWarning =
     "Unsigned remote configuration is insecure; it allows a network attacker to disable pinning."
 }

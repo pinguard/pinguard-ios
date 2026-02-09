@@ -78,4 +78,3 @@ public enum PinGuardEvent: Equatable, Sendable {
     /// - Parameter host: The hostname that required a client identity.
     case mtlsIdentityMissing(host: String)
 }
-

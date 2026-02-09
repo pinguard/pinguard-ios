@@ -28,6 +28,11 @@ public protocol ClientCertificateProvider: Sendable {
     func clientIdentity(for host: String) -> ClientIdentityResult
 }
 
+/// The result of requesting a client identity for mutual TLS (mTLS).
+///
+/// `ClientIdentityResult` captures whether a usable identity is available, needs renewal,
+/// or is unavailable. On success, it includes the `SecIdentity` and the accompanying
+/// certificate chain to present to the server.
 public enum ClientIdentityResult {
 
     /// A client identity and its certificate chain were successfully retrieved.

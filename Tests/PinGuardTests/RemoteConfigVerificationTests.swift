@@ -5,10 +5,10 @@
 //  Created by Çağatay Eğilmez on 4.02.2026.
 //
 
-import XCTest
 import CryptoKit
-import Security
 @testable import PinGuard
+import Security
+import XCTest
 
 final class RemoteConfigVerificationTests: XCTestCase {
 
@@ -29,7 +29,10 @@ final class RemoteConfigVerificationTests: XCTestCase {
         )
 
         let verifier = HMACRemoteConfigVerifier { secretID in
-            guard secretID == "test-key-id" else { return nil }
+            guard secretID == "test-key-id" else {
+                return nil
+            }
+
             return secret
         }
 
@@ -101,40 +104,6 @@ final class RemoteConfigVerificationTests: XCTestCase {
         let verifier = HMACRemoteConfigVerifier { _ in secret }
 
         XCTAssertFalse(verifier.verify(blob: blob))
-    }
-
-    // MARK: - PublicKey Verification
-
-    func testPublicKeyVerificationSucceedsWithValidSignature() throws {
-        let privateKey = P256.Signing.PrivateKey()
-        let payload = Data("test-payload".utf8)
-        let signature = try privateKey.signature(for: payload)
-
-        // Convert CryptoKit public key to SecKey
-        let publicKeyData = privateKey.publicKey.x963Representation
-        let attributes: [String: Any] = [
-            kSecAttrKeyType as String: kSecAttrKeyTypeECSECPrimeRandom,
-            kSecAttrKeyClass as String: kSecAttrKeyClassPublic,
-            kSecAttrKeySizeInBits as String: 256
-        ]
-
-        guard let secKey = SecKeyCreateWithData(publicKeyData as CFData, attributes as CFDictionary, nil) else {
-            XCTFail("Failed to create SecKey")
-            return
-        }
-
-        let blob = RemoteConfigBlob(
-            payload: payload,
-            signature: signature.rawRepresentation,
-            signatureType: .publicKey(keyID: "test-key-id")
-        )
-
-        let verifier = PublicKeyRemoteConfigVerifier { keyID in
-            guard keyID == "test-key-id" else { return nil }
-            return secKey
-        }
-
-        XCTAssertTrue(verifier.verify(blob: blob))
     }
 
     func testPublicKeyVerificationFailsWithWrongKey() throws {

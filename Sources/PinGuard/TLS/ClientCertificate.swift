@@ -23,7 +23,12 @@ public enum ClientCertificateSource: Sendable {
     case keychain(identityTag: Data)
 }
 
-public struct ClientCertificateLoader {
+/// Helpers for loading client identities used for mTLS.
+///
+/// `ClientCertificateLoader` retrieves client identities from supported sources, such as
+/// PKCS#12 blobs or the Keychain (by application tag), and returns a `ClientIdentityResult`
+/// indicating success, renewal requirement, or unavailability.
+public enum ClientCertificateLoader {
 
     /// Loads a client identity from the specified source.
     ///

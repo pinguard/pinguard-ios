@@ -9,6 +9,15 @@ import CryptoKit
 import Foundation
 import Security
 
+/// Utilities for computing certificate and key pin hashes.
+///
+/// `PinHasher` provides helpers to generate Base64-encoded SHA-256 digests used for
+/// certificate pinning:
+/// - `spkiHash(for:)` computes the hash of a key's Subject Public Key Info (SPKI).
+/// - `certificateHash(for:)` computes the hash of a certificate's DER bytes.
+///
+/// Both functions return the digest as a Base64 string suitable for comparison with
+/// stored pins.
 public enum PinHasher {
 
     /// Computes a Base64-encoded SHA-256 hash of the key's Subject Public Key Info (SPKI).

@@ -5,8 +5,8 @@
 //  Created by Çağatay Eğilmez on 2.02.2026.
 //
 
-import XCTest
 @testable import PinGuard
+import XCTest
 
 final class PinGuardPolicyTests: XCTestCase {
 
