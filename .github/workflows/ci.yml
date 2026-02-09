@@ -230,12 +230,14 @@ jobs:
               name: "TestIntegration",
               platforms: [.iOS(.v15)],
               dependencies: [
-                  .package(path: "__WORKSPACE__")
+                  .package(name: "pinguard-ios", path: "__WORKSPACE__")
               ],
               targets: [
                   .target(
                       name: "TestIntegration",
-                      dependencies: ["PinGuard"]
+                      dependencies: [
+                          .product(name: "PinGuard", package: "pinguard-ios")
+                      ]
                   )
               ]
           )
