@@ -1,0 +1,252 @@
+name: Nightly Build
+
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: nightly-${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  lint:
+    name: SwiftLint
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+      - name: Install SwiftLint
+        run: brew install swiftlint
+      - name: Run SwiftLint
+        run: swiftlint lint --strict --reporter github-actions-logging
+
+  spm-build-test:
+    name: SPM Build & Test (macOS)
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          xcodebuild -version
+
+      - name: Cache SPM build
+        uses: actions/cache@v4.2.2
+        with:
+          path: .build
+          key: ${{ runner.os }}-spm-nightly-${{ hashFiles('**/Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-nightly-
+            ${{ runner.os }}-spm-
+
+      - name: Resolve
+        run: |
+          set -euo pipefail
+          swift package resolve
+
+      - name: Build (Release)
+        run: |
+          set -euo pipefail
+          swift build -c release
+
+      - name: Test
+        run: |
+          set -euo pipefail
+          swift test --parallel --enable-code-coverage
+
+  example-app-test:
+    name: Example App (Nightly matrix)
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        destination:
+          - platform=iOS Simulator,name=iPhone 15 Pro
+          - platform=iOS Simulator,name=iPhone 16 Pro
+          - platform=iOS Simulator,name=iPad Pro 13-inch (M4)
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          xcodebuild -version
+
+      - name: List available simulators
+        run: xcrun simctl list devices available
+
+      - name: Cache Example SPM
+        uses: actions/cache@v4.2.2
+        with:
+          path: Example/.build
+          key: ${{ runner.os }}-example-nightly-${{ matrix.destination }}-${{ hashFiles('**/Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-example-nightly-${{ matrix.destination }}-
+            ${{ runner.os }}-example-nightly-
+
+      - name: Resolve packages (Example)
+        working-directory: Example
+        run: |
+          set -euo pipefail
+          xcodebuild -resolvePackageDependencies \
+            -project Example.xcodeproj \
+            -scheme Example
+
+      - name: Test (Example)
+        working-directory: Example
+        run: |
+          set -euo pipefail
+          xcodebuild test \
+            -project Example.xcodeproj \
+            -scheme Example \
+            -destination "${{ matrix.destination }}" \
+            -configuration Release \
+            -enableCodeCoverage YES \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            ONLY_ACTIVE_ARCH=NO \
+            | tee test.log
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4.5.0
+        with:
+          name: nightly-example-logs-${{ strategy.job-index }}
+          path: Example/test.log
+          if-no-files-found: ignore
+
+  validate-distribution:
+    name: Validate Distribution
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          xcodebuild -version
+
+      - name: Validate Package.swift
+        run: |
+          set -euo pipefail
+          swift package dump-package > /dev/null
+
+      - name: Build macOS + iOS Simulator
+        run: |
+          set -euo pipefail
+
+          swift build --build-tests -c release
+
+          ARCH="$(uname -m)"
+          if [ "$ARCH" = "arm64" ]; then
+            TRIPLE="arm64-apple-ios15.0-simulator"
+          else
+            TRIPLE="x86_64-apple-ios15.0-simulator"
+          fi
+
+          SDKROOT="$(xcrun --sdk iphonesimulator --show-sdk-path)"
+          swift build -c release --sdk "$SDKROOT" --triple "$TRIPLE"
+
+  extended-validation:
+    name: Extended Validation
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+
+      - name: Show dependencies
+        run: |
+          set -euo pipefail
+          swift package show-dependencies
+
+      - name: Code statistics (best-effort)
+        run: |
+          set -euo pipefail
+          echo "📊 Code Statistics:"
+          echo "Total Swift files: $(find Sources Tests -name '*.swift' 2>/dev/null | wc -l || true)"
+          echo "Total lines: $(find Sources Tests -name '*.swift' -exec cat {} \; 2>/dev/null | wc -l || true)"
+
+      - name: README basic link sanity
+        run: |
+          set -euo pipefail
+          if grep -E '\]\(\s*\)' README.md; then
+            echo "❌ Found empty link in README"
+            exit 1
+          fi
+          echo "✅ README link sanity OK"
+
+  notify-on-failure:
+    name: Notify on Failure (scheduled only)
+    runs-on: ubuntu-latest
+    needs:
+      - lint
+      - spm-build-test
+      - example-app-test
+      - validate-distribution
+      - extended-validation
+    if: failure() && github.event_name == 'schedule'
+    steps:
+      - name: Create issue if none open
+        uses: actions/github-script@v7.0.1
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const issues = await github.rest.issues.listForRepo({
+              owner, repo, state: 'open', labels: 'nightly-build-failure', per_page: 1
+            });
+
+            if (issues.data.length > 0) {
+              core.info('An open nightly failure issue already exists. Skipping creation.');
+              return;
+            }
+
+            const runUrl = `https://github.com/${owner}/${repo}/actions/runs/${context.runId}`;
+            await github.rest.issues.create({
+              owner, repo,
+              title: '🔴 Nightly Build Failed',
+              labels: ['nightly-build-failure', 'bug'],
+              body:
+`## Nightly Build Failure
+
+Scheduled nightly build failed.
+
+- Run: ${runUrl}
+- Date: ${new Date().toISOString().split('T')[0]}
+
+Next:
+1) Check logs
+2) Fix root cause
+3) Close this issue`
+            });
+
+  nightly-success:
+    name: Nightly Success
+    runs-on: ubuntu-latest
+    needs:
+      - lint
+      - spm-build-test
+      - example-app-test
+      - validate-distribution
+      - extended-validation
+    if: always()
+    steps:
+      - name: Ensure all jobs succeeded
+        run: |
+          if [ "${{ needs.lint.result }}" != "success" ] || \
+             [ "${{ needs.spm-build-test.result }}" != "success" ] || \
+             [ "${{ needs.example-app-test.result }}" != "success" ] || \
+             [ "${{ needs.validate-distribution.result }}" != "success" ] || \
+             [ "${{ needs.extended-validation.result }}" != "success" ]; then
+            echo "❌ Nightly failed"
+            exit 1
+          fi
+          echo "✅ Nightly passed"
