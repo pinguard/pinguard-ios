@@ -5,8 +5,8 @@
 //  Created by Çağatay Eğilmez on 4.02.2026.
 //
 
-import XCTest
 @testable import PinGuard
+import XCTest
 
 final class HostMatcherTests: XCTestCase {
 

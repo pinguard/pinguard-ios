@@ -7,6 +7,16 @@
 
 import Foundation
 
+/// Provides host-pattern matching utilities for pinning policies.
+///
+/// `HostMatcher` determines whether a given hostname matches a `HostPattern`.
+/// It supports two pattern types:
+/// - Exact: The hostname must match exactly after normalization (lowercasing and trimming).
+/// - Wildcard: The hostname must contain one additional label in front of the provided suffix
+///   (e.g., `sub.example.com` matches wildcard `*.example.com`, but `example.com` does not).
+///
+/// Use `matches(_:host:)` to check if a host conforms to a specific pattern. Wildcard matching
+/// is implemented via suffix comparison with label-count validation to avoid over-broad matches.
 public enum HostMatcher {
 
     /// Returns whether a host matches the given host pattern.
@@ -70,9 +80,9 @@ struct PolicyResolver {
         let wildcardMatches = policies.filter {
             HostMatcher.matches($0.pattern, host: normalized)
         }
-        if let mostSpecific = wildcardMatches.sorted(by: {
-            wildcardSpecificity($0.pattern) > wildcardSpecificity($1.pattern)
-        }).first {
+        if let mostSpecific = wildcardMatches.max(by: { lhs, rhs in
+            wildcardSpecificity(lhs.pattern) < wildcardSpecificity(rhs.pattern)
+        }) {
             return mostSpecific.policy
         }
         return defaultPolicy

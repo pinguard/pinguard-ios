@@ -5,9 +5,9 @@
 //  Created by Çağatay Eğilmez on 4.02.2026.
 //
 
+@testable import PinGuard
 import SwiftUI
 import XCTest
-@testable import PinGuard
 
 final class ThreadSafetyTests: XCTestCase {
 
@@ -92,7 +92,7 @@ final class ThreadSafetyTests: XCTestCase {
                 // Add read tasks
                 for _ in 0..<readCount {
                     group.addTask { @Sendable in
-                        let _ = await MainActor.run {
+                        _ = await MainActor.run {
                             pinGuard.currentConfiguration()
                         }
                         await MainActor.run {
@@ -176,4 +176,3 @@ final class ThreadSafetyTests: XCTestCase {
         await fulfillment(of: [expectation], timeout: 5.0)
     }
 }
-

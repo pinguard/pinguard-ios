@@ -149,4 +149,3 @@ public final class PinGuard: @unchecked Sendable {
         return configuration
     }
 }
-
