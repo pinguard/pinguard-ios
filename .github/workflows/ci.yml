@@ -107,13 +107,22 @@ jobs:
       - name: List available simulators
         run: xcrun simctl list devices available
 
+      - name: Sanitize destination for cache key
+        shell: bash
+        run: |
+          set -euo pipefail
+          # "platform=iOS Simulator,name=iPhone 15 Pro" -> "platform=iOS_Simulator-name=iPhone_15_Pro"
+          DEST_KEY="$(echo '${{ matrix.destination }}' | tr ', ' '-_')"
+          echo "DEST_KEY=$DEST_KEY" >> "$GITHUB_ENV"
+          echo "DEST_KEY=$DEST_KEY"
+
       - name: Cache Example SPM
         uses: actions/cache@v4.2.2
         with:
           path: Example/.build
-          key: ${{ runner.os }}-example-${{ replace(replace(matrix.destination, ',', '-'), ' ', '_') }}-${{ hashFiles('**/Package.resolved') }}
+          key: ${{ runner.os }}-example-${{ env.DEST_KEY }}-${{ hashFiles('**/Package.resolved') }}
           restore-keys: |
-            ${{ runner.os }}-example-${{ replace(replace(matrix.destination, ',', '-'), ' ', '_') }}-
+            ${{ runner.os }}-example-${{ env.DEST_KEY }}-
             ${{ runner.os }}-example-
 
       - name: Resolve packages (Example)
