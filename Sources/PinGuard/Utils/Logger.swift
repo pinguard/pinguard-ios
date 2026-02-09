@@ -10,10 +10,10 @@ import os
 
 // swiftlint:disable all
 public struct PinGuardLogger {
-    
+
     public static let subsystem = "PinGuard"
     public static let logger = Logger(subsystem: subsystem, category: "core")
-    
+
     public static func log(_ event: PinGuardEvent) {
         switch event {
         case .policyMissing(let host):

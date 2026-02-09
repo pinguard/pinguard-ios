@@ -5,17 +5,16 @@
 //  Created by Çağatay Eğilmez on 4.02.2026
 //
 
-import SwiftUI
+import CryptoKit
 import PinGuard
 import Security
-import CryptoKit
+import SwiftUI
 
 struct PinGenerationDemoView: View {
     var body: some View {
-        DemoViewTemplate(
-            title: "Pin Generation",
-            description: "Generate SPKI and certificate hashes from keys and certificates.",
-            codeSnippet: """
+        DemoViewTemplate(title: "Pin Generation",
+                         description: "Generate SPKI and certificate hashes from keys and certificates.",
+                         codeSnippet: """
 // Generate SPKI hash from SecKey
 let spkiHash = try PinHasher.spkiHash(for: secKey)
 
@@ -29,11 +28,9 @@ let certPin = Pin(type: .certificate, hash: certHash,
                   role: .backup, scope: .any)
 let caPin = Pin(type: .ca, hash: caHash,
                 role: .primary, scope: .root)
-""",
-            action: {
-                await performPinGenerationDemo()
-            }
-        ) {
+""") {
+            await performPinGenerationDemo()
+        } content: {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Pin Types:")
                     .font(.headline)
@@ -101,16 +98,9 @@ func performPinGenerationDemo() async -> String {
         for (index, pin) in pins.enumerated() {
             output += "\(index + 1). type=.\(pin.type) role=.\(pin.role) scope=.\(pin.scope)\n"
         }
-
     } catch {
         output += "❌ Error: \(error.localizedDescription)\n"
     }
 
     return output
-}
-
-#Preview {
-    NavigationView {
-        PinGenerationDemoView()
-    }
 }

@@ -5,15 +5,14 @@
 //  Created by Çağatay Eğilmez on 4.02.2026
 //
 
-import SwiftUI
 import PinGuard
+import SwiftUI
 
 struct PolicyConfigDemoView: View {
     var body: some View {
-        DemoViewTemplate(
-            title: "Policy Configuration",
-            description: "Configure pinning policies with host patterns, fail strategies, and trust options.",
-            codeSnippet: """
+        DemoViewTemplate(title: "Policy Configuration",
+                         description: "Configure pinning policies with host patterns.",
+                         codeSnippet: """
 // Exact host pattern
 let exactPattern = HostPattern.exact("api.example.com")
 
@@ -42,11 +41,9 @@ let policySet = PolicySet(
     ],
     defaultPolicy: fallbackPolicy
 )
-""",
-            action: {
-                await performPolicyConfigDemo()
-            }
-        ) {
+""") {
+            await performPolicyConfigDemo()
+        } content: {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Host Patterns:")
                     .font(.headline)
@@ -78,7 +75,6 @@ let policySet = PolicySet(
 func performPolicyConfigDemo() async -> String {
     var output = ""
 
-    // Test host pattern matching
     output += "=== Host Pattern Matching ===\n\n"
 
     let exactPattern = HostPattern.exact("api.example.com")
@@ -100,11 +96,9 @@ func performPolicyConfigDemo() async -> String {
     }
 
     output += "\n=== Policy Configuration ===\n\n"
-
     let pin1 = Pin(type: .spki, hash: "PRIMARY_HASH", role: .primary)
     let pin2 = Pin(type: .spki, hash: "BACKUP_HASH", role: .backup)
 
-    // Strict policy
     let strictPolicy = PinningPolicy(
         pins: [pin1, pin2],
         failStrategy: .strict,
@@ -112,7 +106,6 @@ func performPolicyConfigDemo() async -> String {
         allowSystemTrustFallback: false
     )
 
-    // Permissive policy
     let permissivePolicy = PinningPolicy(
         pins: [pin1],
         failStrategy: .permissive,
@@ -130,13 +123,11 @@ func performPolicyConfigDemo() async -> String {
     output += "  strategy: .\(permissivePolicy.failStrategy)\n"
     output += "  allowSystemTrustFallback: \(permissivePolicy.allowSystemTrustFallback)\n\n"
 
-    // Policy set
-    let policySet = PolicySet(
-        policies: [
-            HostPolicy(pattern: .exact("api.example.com"), policy: strictPolicy),
-            HostPolicy(pattern: .wildcard("example.com"), policy: permissivePolicy)
-        ],
-        defaultPolicy: permissivePolicy
+    let policySet = PolicySet(policies: [
+        HostPolicy(pattern: .exact("api.example.com"), policy: strictPolicy),
+        HostPolicy(pattern: .wildcard("example.com"), policy: permissivePolicy)
+    ],
+                              defaultPolicy: permissivePolicy
     )
 
     output += "Policy Set:\n"
@@ -144,10 +135,4 @@ func performPolicyConfigDemo() async -> String {
     output += "  has default: \(policySet.defaultPolicy != nil)\n"
 
     return output
-}
-
-#Preview {
-    NavigationView {
-        PolicyConfigDemoView()
-    }
 }

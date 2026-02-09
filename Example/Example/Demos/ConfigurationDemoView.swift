@@ -5,15 +5,14 @@
 //  Created by Çağatay Eğilmez on 4.02.2026
 //
 
-import SwiftUI
 import PinGuard
+import SwiftUI
 
 struct ConfigurationDemoView: View {
     var body: some View {
-        DemoViewTemplate(
-            title: "Configuration",
-            description: "Configure PinGuard with multiple environments using the Builder pattern.",
-            codeSnippet: """
+        DemoViewTemplate(title: "Configuration",
+                         description: "Configure PinGuard with multiple environments using the Builder pattern.",
+                         codeSnippet: """
 PinGuard.configure { builder in
     let pin = Pin(type: .spki, hash: "abc...")
     let policy = PinningPolicy(pins: [pin])
@@ -30,11 +29,9 @@ PinGuard.configure { builder in
         print("Event: \\(event)")
     }
 }
-""",
-            action: {
-                await performConfigurationDemo()
-            }
-        ) {
+""") {
+            await performConfigurationDemo()
+        } content: {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Features:")
                     .font(.headline)
@@ -70,9 +67,10 @@ func performConfigurationDemo() async -> String {
 
         builder.selectEnvironment(.dev)
 
-        var eventCount = 0
-        builder.telemetry { _ in
-            eventCount += 1
+        builder.telemetry { event in
+            Task { @MainActor in
+                printEvent(event)
+            }
         }
 
         output += "✅ Configured 2 environments\n"
@@ -87,8 +85,33 @@ func performConfigurationDemo() async -> String {
     return output
 }
 
-#Preview {
-    NavigationView {
-        ConfigurationDemoView()
+private func printEvent(_ event: PinGuardEvent) {
+    var eventDescription = "Unknown event"
+    switch event {
+    case .policyMissing(let host):
+        eventDescription = "Policy missing for \(host)"
+    case .systemTrustEvaluated(let host, let isTrusted):
+        eventDescription = "Trust for \(host) is \(isTrusted ? "trusted" : "not trusted")"
+    case .systemTrustFailed(let host, let error):
+        eventDescription = "Trust evaluation for \(host) failed: \(error ?? "")"
+    case .systemTrustFailedPermissive(let host):
+        eventDescription = "Trust evaluation for \(host) failed in permissive mode"
+    case .chainSummary(let host, let summary):
+        eventDescription = "Trust evaluation for \(host): \(summary)"
+    case .pinMatched(let host, let pins):
+        eventDescription = "Pin(s) for \(host) match: \(pins.map(\.hash).joined(separator: ", "))"
+    case .pinMismatch(let host):
+        eventDescription = "No pin(s) found for \(host)"
+    case .pinMismatchAllowedByFallback(let host):
+        eventDescription = "No pin(s) found for \(host), falling back"
+    case .pinMismatchPermissive(let host):
+        eventDescription = "No pin(s) found for \(host), falling back (permissive mode)"
+    case .pinSetEmpty(let host):
+        eventDescription = "No pins set for \(host)"
+    case .mtlsIdentityUsed(let host):
+        eventDescription = "MTLS identity for \(host) is being used"
+    case .mtlsIdentityMissing(let host):
+        eventDescription = "No MTLS identity available for \(host)"
     }
+    print(eventDescription)
 }

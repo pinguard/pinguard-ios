@@ -5,17 +5,16 @@
 //  Created by Çağatay Eğilmez on 4.02.2026
 //
 
-import SwiftUI
 import PinGuard
+import SwiftUI
 
 struct URLSessionDemoView: View {
     @State private var sessionOutput = ""
 
     var body: some View {
-        DemoViewTemplate(
-            title: "URLSession Integration",
-            description: "Use PinGuardSession wrapper or custom delegate for pinning.",
-            codeSnippet: """
+        DemoViewTemplate(title: "URLSession Integration",
+                         description: "Use PinGuardSession wrapper or custom delegate for pinning.",
+                         codeSnippet: """
 // Option 1: PinGuardSession (convenience)
 let session = PinGuardSession()
 let (data, response) = try await session.data(
@@ -32,11 +31,9 @@ let session = URLSession(
     delegate: delegate,
     delegateQueue: nil
 )
-""",
-            action: {
-                await performURLSessionDemo()
-            }
-        ) {
+""") {
+            await performURLSessionDemo()
+        } content: {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Integration Options:")
                     .font(.headline)
@@ -57,7 +54,7 @@ let session = URLSession(
                     Text(sessionOutput)
                         .font(.caption)
                         .padding()
-                        .background(Color(.systemGray6))
+                        .background(Color.secondary.opacity(0.15))
                         .cornerRadius(8)
                 }
             }
@@ -69,7 +66,9 @@ let session = URLSession(
         sessionOutput = "Making request to example.com...\n"
 
         let session = PinGuardSession()
-        let url = URL(string: "https://example.com")!
+        guard let url = URL(string: "https://example.com") else {
+            return
+        }
 
         do {
             let (data, response) = try await session.data(from: url)
@@ -108,10 +107,4 @@ func performURLSessionDemo() async -> String {
     output += "3. Both validate pins automatically\n"
 
     return output
-}
-
-#Preview {
-    NavigationView {
-        URLSessionDemoView()
-    }
 }

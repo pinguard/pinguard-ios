@@ -41,11 +41,6 @@
 			path = Example;
 			sourceTree = "<group>";
 		};
-		52E4E9BF2F320209000AD10B /* ExampleTests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = ExampleTests;
-			sourceTree = "<group>";
-		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -80,7 +75,6 @@
 			isa = PBXGroup;
 			children = (
 				52E4E9B12F320208000AD10B /* Example */,
-				52E4E9BF2F320209000AD10B /* ExampleTests */,
 				52E4E9B02F320208000AD10B /* Products */,
 			);
 			sourceTree = "<group>";
@@ -134,9 +128,6 @@
 			);
 			dependencies = (
 				52E4E9BE2F320209000AD10B /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				52E4E9BF2F320209000AD10B /* ExampleTests */,
 			);
 			name = ExampleTests;
 			packageProductDependencies = (
@@ -404,7 +395,11 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = QX735LV746;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "PinGuard Example";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -420,8 +415,9 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.cagatayegilmez.Example;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
@@ -443,6 +439,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = QX735LV746;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "PinGuard Example";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -459,7 +456,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.cagatayegilmez.Example;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;

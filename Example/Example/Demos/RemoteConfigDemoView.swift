@@ -5,16 +5,15 @@
 //  Created by Çağatay Eğilmez on 4.02.2026
 //
 
-import SwiftUI
-import PinGuard
 import CryptoKit
+import PinGuard
+import SwiftUI
 
 struct RemoteConfigDemoView: View {
     var body: some View {
-        DemoViewTemplate(
-            title: "Remote Configuration",
-            description: "Verify signed configuration blobs using HMAC or public key signatures.",
-            codeSnippet: """
+        DemoViewTemplate(title: "Remote Configuration",
+                         description: "Verify signed configuration blobs using HMAC.",
+                         codeSnippet: """
 // Create signed blob
 let blob = RemoteConfigBlob(
     payload: configData,
@@ -36,11 +35,9 @@ let isValid = pkVerifier.verify(blob: blob)
 
 // Security warning
 print(RemoteConfigThreatModel.unsignedConfigWarning)
-""",
-            action: {
-                await performRemoteConfigDemo()
-            }
-        ) {
+""") {
+            await performRemoteConfigDemo()
+        } content: {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Signature Types:")
                     .font(.headline)
@@ -81,14 +78,15 @@ func performRemoteConfigDemo() async -> String {
     let mac = HMAC<SHA256>.authenticationCode(for: payload, using: key)
     let signature = Data(mac)
 
-    let hmacBlob = RemoteConfigBlob(
-        payload: payload,
-        signature: signature,
-        signatureType: .hmacSHA256(secretID: "demo-key-v1")
-    )
+    let hmacBlob = RemoteConfigBlob(payload: payload,
+                                    signature: signature,
+                                    signatureType: .hmacSHA256(secretID: "demo-key-v1"))
 
     let hmacVerifier = HMACRemoteConfigVerifier { secretID in
-        guard secretID == "demo-key-v1" else { return nil }
+        guard secretID == "demo-key-v1" else {
+            return nil
+        }
+
         return secret
     }
 
@@ -101,28 +99,27 @@ func performRemoteConfigDemo() async -> String {
     output += "=== Public Key Verification ===\n\n"
 
     let privateKey = P256.Signing.PrivateKey()
-    let pkSignature = try! privateKey.signature(for: payload)
-
-    let publicKeyData = privateKey.publicKey.x963Representation
-    let attributes: [String: Any] = [
-        kSecAttrKeyType as String: kSecAttrKeyTypeECSECPrimeRandom,
-        kSecAttrKeyClass as String: kSecAttrKeyClassPublic,
-        kSecAttrKeySizeInBits as String: 256
-    ]
-
-    guard let secKey = SecKeyCreateWithData(publicKeyData as CFData, attributes as CFDictionary, nil) else {
-        return output + "❌ Failed to create SecKey"
+    guard let pkSignature = try? privateKey.signature(for: payload) else {
+        return output + "❌ Failed to create signature"
     }
 
-    let pkBlob = RemoteConfigBlob(
-        payload: payload,
-        signature: pkSignature.rawRepresentation,
-        signatureType: .publicKey(keyID: "demo-pk-v1")
-    )
+    let publicKeyData = privateKey.publicKey.x963Representation
 
-    let pkVerifier = PublicKeyRemoteConfigVerifier { keyID in
-        guard keyID == "demo-pk-v1" else { return nil }
-        return secKey
+    let pkBlob = RemoteConfigBlob(payload: payload,
+                                  signature: pkSignature.rawRepresentation,
+                                  signatureType: .publicKey(keyID: "demo-pk-v1"))
+
+    let pkVerifier = PublicKeyRemoteConfigVerifier { [publicKeyData] keyID in
+        guard keyID == "demo-pk-v1" else {
+            return nil
+        }
+
+        let attributes: [String: Any] = [
+            kSecAttrKeyType as String: kSecAttrKeyTypeECSECPrimeRandom,
+            kSecAttrKeyClass as String: kSecAttrKeyClassPublic,
+            kSecAttrKeySizeInBits as String: 256
+        ]
+        return SecKeyCreateWithData(publicKeyData as CFData, attributes as CFDictionary, nil)
     }
 
     let pkValid = pkVerifier.verify(blob: pkBlob)
@@ -134,10 +131,4 @@ func performRemoteConfigDemo() async -> String {
     output += RemoteConfigThreatModel.unsignedConfigWarning
 
     return output
-}
-
-#Preview {
-    NavigationView {
-        RemoteConfigDemoView()
-    }
 }

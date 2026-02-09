@@ -5,16 +5,15 @@
 //  Created by Çağatay Eğilmez on 4.02.2026
 //
 
-import SwiftUI
 import PinGuard
 import Security
+import SwiftUI
 
 struct MTLSDemoView: View {
     var body: some View {
-        DemoViewTemplate(
-            title: "mTLS (Mutual TLS)",
-            description: "Configure client certificates for mutual authentication.",
-            codeSnippet: """
+        DemoViewTemplate(title: "mTLS (Mutual TLS)",
+                         description: "Configure client certificates for mutual authentication.",
+                         codeSnippet: """
 // Load from PKCS12
 let source = ClientCertificateSource.pkcs12(
     data: pkcs12Data,
@@ -48,11 +47,9 @@ builder.environment(
     policySet: policySet,
     mtls: mtlsConfig
 )
-""",
-            action: {
-                await performMTLSDemo()
-            }
-        ) {
+""") {
+            await performMTLSDemo()
+        } content: {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Certificate Sources:")
                     .font(.headline)
@@ -88,10 +85,8 @@ func performMTLSDemo() async -> String {
 
     // Demonstrate PKCS12 source (simulated)
     let pkcs12Data = Data("SIMULATED_PKCS12".utf8)
-    let pkcs12Source = ClientCertificateSource.pkcs12(
-        data: pkcs12Data,
-        password: "demo_password"
-    )
+    _ = ClientCertificateSource.pkcs12(data: pkcs12Data,
+                                       password: "demo_password")
 
     output += "✅ Created PKCS12 source\n"
     output += "   Size: \(pkcs12Data.count) bytes\n\n"
@@ -104,7 +99,7 @@ func performMTLSDemo() async -> String {
     let result = ClientCertificateLoader.loadIdentity(from: keychainSource)
 
     switch result {
-    case .success(let identity, let chain):
+    case .success(_, let chain):
         output += "✅ Identity loaded successfully\n"
         output += "   Chain length: \(chain.count)\n"
     case .renewalRequired:
@@ -115,13 +110,9 @@ func performMTLSDemo() async -> String {
 
     output += "\n=== MTLSConfiguration ===\n\n"
 
-    var renewalCalled = false
-    let mtlsConfig = MTLSConfiguration(
-        provider: provider,
-        onRenewalRequired: {
-            renewalCalled = true
-        }
-    )
+    _ = MTLSConfiguration(provider: provider) {
+        print("Reneval called")
+    }
 
     output += "✅ Created MTLSConfiguration\n"
     output += "✅ Renewal callback configured\n\n"
@@ -133,10 +124,4 @@ func performMTLSDemo() async -> String {
     output += "4. Automatic client cert presentation\n"
 
     return output
-}
-
-#Preview {
-    NavigationView {
-        MTLSDemoView()
-    }
 }

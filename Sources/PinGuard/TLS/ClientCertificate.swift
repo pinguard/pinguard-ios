@@ -77,7 +77,7 @@ public struct ClientCertificateLoader {
               CFGetTypeID(identityRef) == SecIdentityGetTypeID() else {
             return .unavailable
         }
-        
+
         let identity: SecIdentity = unsafeDowncast(identityRef, to: SecIdentity.self)
         var cert: SecCertificate?
         _ = SecIdentityCopyCertificate(identity, &cert)
@@ -87,9 +87,9 @@ public struct ClientCertificateLoader {
 }
 
 public struct StaticClientCertificateProvider: ClientCertificateProvider, Sendable {
-    
+
     private let source: ClientCertificateSource
-    
+
     public init(source: ClientCertificateSource) {
         self.source = source
     }
