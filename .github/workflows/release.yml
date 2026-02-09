@@ -1,0 +1,141 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    name: Validate Release Build
+    runs-on: macos-latest
+    steps:
+      - name: Checkout (full history)
+        uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          xcodebuild -version
+
+      - name: Validate tag format
+        run: |
+          set -euo pipefail
+          TAG="${{ github.ref_name }}"
+          if ! [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$ ]]; then
+            echo "❌ Invalid tag format: $TAG"
+            exit 1
+          fi
+          echo "✅ Tag OK: $TAG"
+
+      - name: Cache SPM build
+        uses: actions/cache@v4.2.2
+        with:
+          path: .build
+          key: ${{ runner.os }}-spm-release-${{ hashFiles('**/Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-release-
+            ${{ runner.os }}-spm-
+
+      - name: SwiftLint (skip if not configured)
+        run: |
+          set -euo pipefail
+          if [ -f ".swiftlint.yml" ] || [ -f ".swiftlint.yaml" ]; then
+            brew install swiftlint
+            swiftlint lint --strict --reporter github-actions-logging
+          else
+            echo "No SwiftLint config found; skipping lint."
+          fi
+
+      - name: Validate Package.swift
+        run: |
+          set -euo pipefail
+          swift package dump-package > /dev/null
+
+      - name: Build + Test (SPM)
+        run: |
+          set -euo pipefail
+          swift package resolve
+          swift build -c release
+          swift test --parallel
+
+      - name: Build Example app (sanity)
+        working-directory: Example
+        run: |
+          set -euo pipefail
+          xcodebuild build \
+            -project Example.xcodeproj \
+            -scheme Example \
+            -destination "platform=iOS Simulator,name=iPhone 15 Pro" \
+            -configuration Release \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            ONLY_ACTIVE_ARCH=NO
+
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: validate
+    steps:
+      - name: Checkout (full history)
+        uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Generate release notes
+        run: |
+          set -euo pipefail
+
+          VERSION="${{ github.ref_name }}"
+          PREV_TAG="$(git describe --tags --abbrev=0 "${VERSION}^" 2>/dev/null || true)"
+
+          {
+            echo "## What's New in ${VERSION}"
+            echo
+            echo "### Installation (Swift Package Manager)"
+            echo
+            echo "\`\`\`swift"
+            echo "dependencies: ["
+            echo "  .package(url: \"https://github.com/pinguard/pinguard-ios.git\", from: \"${VERSION}\")"
+            echo "]"
+            echo "\`\`\`"
+            echo
+            if [ -n "${PREV_TAG}" ]; then
+              echo "### Changes since ${PREV_TAG}"
+              echo
+              git log "${PREV_TAG}..${VERSION}" --pretty=format:"- %s (%h)"
+              echo
+            fi
+          } > release_notes.md
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2.2.0
+        with:
+          name: PinGuard ${{ github.ref_name }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-alpha') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-rc') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  release-success:
+    name: Release Success
+    runs-on: ubuntu-latest
+    needs:
+      - validate
+      - create-release
+    if: always()
+    steps:
+      - name: Ensure release succeeded
+        run: |
+          if [ "${{ needs.validate.result }}" != "success" ] || \
+             [ "${{ needs.create-release.result }}" != "success" ]; then
+            echo "❌ Release workflow failed"
+            exit 1
+          fi
+          echo "✅ Release published: ${{ github.ref_name }}"
