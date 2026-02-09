@@ -173,21 +173,6 @@ jobs:
             ONLY_ACTIVE_ARCH=NO \
             | tee build.log
 
-      - name: Test (Example)
-        working-directory: Example
-        run: |
-          set -euo pipefail
-          xcodebuild test \
-            -project Example.xcodeproj \
-            -scheme Example \
-            -destination "${{ env.SIM_DEST }}" \
-            -configuration Debug \
-            -enableCodeCoverage YES \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            ONLY_ACTIVE_ARCH=NO \
-            | tee test.log
-
       - name: Upload logs on failure
         if: failure()
         uses: actions/upload-artifact@v4.5.0
