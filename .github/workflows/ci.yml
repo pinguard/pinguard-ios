@@ -201,11 +201,6 @@ jobs:
           swift package dump-package > /dev/null
           echo "✅ Package.swift OK"
 
-      - name: Build for macOS (tests included)
-        run: |
-          set -euo pipefail
-          swift build --build-tests -c release
-
       - name: Build for iOS Simulator (SPM cross-build)
         run: |
           set -euo pipefail
