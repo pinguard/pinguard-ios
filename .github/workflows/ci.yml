@@ -111,9 +111,9 @@ jobs:
         uses: actions/cache@v4.2.2
         with:
           path: Example/.build
-          key: ${{ runner.os }}-example-${{ matrix.destination }}-${{ hashFiles('**/Package.resolved') }}
+          key: ${{ runner.os }}-example-${{ replace(replace(matrix.destination, ',', '-'), ' ', '_') }}-${{ hashFiles('**/Package.resolved') }}
           restore-keys: |
-            ${{ runner.os }}-example-${{ matrix.destination }}-
+            ${{ runner.os }}-example-${{ replace(replace(matrix.destination, ',', '-'), ' ', '_') }}-
             ${{ runner.os }}-example-
 
       - name: Resolve packages (Example)
