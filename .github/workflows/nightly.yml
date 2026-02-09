@@ -214,7 +214,7 @@ jobs:
               owner, repo,
               title: '🔴 Nightly Build Failed',
               labels: ['nightly-build-failure', 'bug'],
-              body:
+              body: `## Nightly Build Failure
 
 Scheduled nightly build failed.
 
