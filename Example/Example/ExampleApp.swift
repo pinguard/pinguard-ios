@@ -13,7 +13,7 @@ struct ExampleApp: App {
     init() {
         PinGuard.configure { builder in
             let activePin = Pin(type: .spki, hash: "Y7EKzelfzqmyMnNRDIX8cecAf6wj1nk7nT25ws/qnVo=", role: .primary)
-            let backupPin = Pin(type: .spki, hash: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", role: .backup)
+            let backupPin = Pin(type: .spki, hash: "47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=", role: .backup)
 
             let policy = PinningPolicy(
                 pins: [activePin, backupPin],

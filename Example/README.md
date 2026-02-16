@@ -91,7 +91,7 @@ Example/
 ### Prerequisites
 - Xcode 15+
 - iOS 15+ deployment target
-- Swift 6.2+
+- Swift 5.9+
 
 ### Build
 
@@ -131,7 +131,9 @@ The **URLSession Integration** demo includes a live test button that:
 - Shows success/failure status
 - Displays response metadata
 
-**Note**: Pin hashes for example.com are configured in `ExampleApp.swift`. If pins change, the request will fail (demonstrating pinning protection).
+**Note**: Pin hashes for example.com are configured in `ExampleApp.swift` using **permissive mode**
+for demonstration purposes. This allows the app to function even if pins mismatch, while still
+logging all pinning events. Production apps should use **strict mode** (`failStrategy: .strict`).
 
 ## Code Structure
 

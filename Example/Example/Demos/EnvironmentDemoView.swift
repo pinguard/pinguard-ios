@@ -86,9 +86,9 @@ print("Policies: \\(config.activePolicySet.policies.count)")
     }
 
     @MainActor
-    func switchEnvironment(to env: PinGuard.Configuration.Environment) {
+    func switchEnvironment(to env: PinGuardEnvironment) {
         let currentConfig = PinGuard.shared.currentConfiguration()
-        let newConfig = PinGuard.Configuration(
+        let newConfig = PinGuardConfiguration(
             environments: currentConfig.environments,
             current: env,
             telemetry: currentConfig.telemetry
@@ -154,10 +154,10 @@ func performEnvironmentDemo() async -> String {
     // Demonstrate switching
     output += "=== Runtime Switching ===\n\n"
 
-    let environments: [PinGuard.Configuration.Environment] = [.dev, .prod]
+    let environments: [PinGuardEnvironment] = [.dev, .prod]
 
     for env in environments {
-        let newConfig = PinGuard.Configuration(
+        let newConfig = PinGuardConfiguration(
             environments: config.environments,
             current: env,
             telemetry: config.telemetry
@@ -171,7 +171,7 @@ func performEnvironmentDemo() async -> String {
 
     output += "\n=== Custom Environments ===\n\n"
     output += "Create custom environments:\n"
-    let customEnv = PinGuard.Configuration.Environment("staging")
+    let customEnv = PinGuardEnvironment("staging")
     output += "✅ Environment(\"\(customEnv.name)\")\n"
 
     return output
