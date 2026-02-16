@@ -32,9 +32,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4.2.2
 
-      - name: Select Xcode
+      - name: Select Xcode (default)
         run: |
-          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          set -euo pipefail
+          sudo xcode-select -s "$(ls -d /Applications/Xcode*.app | sort | tail -n 1)/Contents/Developer"
           xcodebuild -version
 
       - name: Cache SPM build
@@ -75,30 +76,32 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4.2.2
 
-      - name: Select Xcode
+      - name: Select Xcode (default)
         run: |
-          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          set -euo pipefail
+          sudo xcode-select -s "$(ls -d /Applications/Xcode*.app | sort | tail -n 1)/Contents/Developer"
           xcodebuild -version
 
-      - name: List available simulators
-        run: xcrun simctl list devices available
+      - name: List available simulators (short)
+        run: xcrun simctl list devices available | egrep "iPhone|iPad" | head -n 200
 
-      - name: Sanitize destination for cache key
+      - name: Sanitize device name for cache key
         id: dest
         run: |
           set -euo pipefail
-          raw='${{ matrix.destination }}'
-          # Cache key cannot contain commas; also avoid spaces/parentheses/etc.
+          raw='${{ matrix.deviceName }}'
           safe="$(echo "$raw" \
             | tr ', ' '__' \
             | tr '=/()' '-----' \
             | tr -cd 'A-Za-z0-9_.-')"
           echo "safe=$safe" >> "$GITHUB_OUTPUT"
 
-      - name: Cache Example SPM
+      - name: Cache Example build artifacts
         uses: actions/cache@v4.2.2
         with:
-          path: Example/.build
+          path: |
+            Example/.build
+            Example/.derivedData
           key: ${{ runner.os }}-example-nightly-${{ steps.dest.outputs.safe }}-${{ hashFiles('**/Package.resolved') }}
           restore-keys: |
             ${{ runner.os }}-example-nightly-${{ steps.dest.outputs.safe }}-
@@ -110,19 +113,34 @@ jobs:
           set -euo pipefail
           xcodebuild -resolvePackageDependencies \
             -project Example.xcodeproj \
-            -scheme Example
+            -scheme Example \
+            -clonedSourcePackagesDirPath .build \
+            -derivedDataPath .derivedData
 
       - name: Resolve simulator UDID
         id: sim
         run: |
           set -euo pipefail
           NAME='${{ matrix.deviceName }}'
-          UDID="$(xcrun simctl list devices available | sed -nE "s/.*${NAME} \\(([-0-9A-F]+)\\) \\(.*\\).*/\\1/p" | head -n 1)"
-          if [ -z "$UDID" ]; then
+
+          python3 - <<'PY'
+          import json, subprocess, sys
+          name = sys.argv[1]
+          out = subprocess.check_output(["xcrun","simctl","list","devices","available","-j"], text=True)
+          data = json.loads(out)
+          for runtime, devices in data.get("devices", {}).items():
+            for d in devices:
+              if d.get("name") == name and d.get("isAvailable", False):
+                print(d.get("udid",""))
+                sys.exit(0)
+          sys.exit(1)
+          PY "$NAME" > /tmp/udid.txt || {
             echo "❌ Simulator not found: $NAME"
             xcrun simctl list devices available
             exit 1
-          fi
+          }
+
+          UDID="$(cat /tmp/udid.txt)"
           echo "udid=$UDID" >> "$GITHUB_OUTPUT"
 
       - name: Test (Example)
@@ -135,6 +153,8 @@ jobs:
             -destination "id=${{ steps.sim.outputs.udid }}" \
             -configuration Release \
             -enableCodeCoverage YES \
+            -clonedSourcePackagesDirPath .build \
+            -derivedDataPath .derivedData \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             ONLY_ACTIVE_ARCH=NO \
@@ -155,9 +175,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4.2.2
 
-      - name: Select Xcode
+      - name: Select Xcode (default)
         run: |
-          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          set -euo pipefail
+          sudo xcode-select -s "$(ls -d /Applications/Xcode*.app | sort | tail -n 1)/Contents/Developer"
           xcodebuild -version
 
       - name: Validate Package.swift
