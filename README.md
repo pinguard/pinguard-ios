@@ -1,6 +1,6 @@
 # PinGuard
 
-[![Swift](https://img.shields.io/badge/Swift-6.0+-orange.svg)](https://swift.org)
+[![Swift](https://img.shields.io/badge/Swift-5.9+-orange.svg)](https://swift.org)
 [![Platforms](https://img.shields.io/badge/Platforms-iOS%20|%20macOS%20|%20tvOS%20|%20watchOS%20|%20visionOS-blue.svg)](https://developer.apple.com)
 [![SPM](https://img.shields.io/badge/SPM-Compatible-brightgreen.svg)](https://swift.org/package-manager)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
@@ -58,7 +58,7 @@ PinGuard is a certificate pinning SDK that validates server certificates against
 | **watchOS** | 8.0+ |
 | **visionOS** | 1.0+ |
 | **Xcode** | 15.0+ |
-| **Swift** | 5.9+ (built with Swift 6) |
+| **Swift** | 5.9+ (built with Swift 6 concurrency) |
 
 **Dependencies:** None (uses only `Foundation`, `Security`, `CryptoKit`, `OSLog`)
 
@@ -91,7 +91,7 @@ import PinGuard
 // 1. Define pins (see "Getting Pin Hashes" section below)
 let primaryPin = Pin(
     type: .spki,
-    hash: "Y7EKzelfzqmyMnNRDIX8cecAf6wj1nk7nT25ws/qnVo=",
+    hash: "Y7EKzelfzqmyMnNRDIX8cecAf6wj1nk7nT25ws/qnVo=",  // Example: example.com SPKI hash
     role: .primary
 )
 let backupPin = Pin(
@@ -786,7 +786,7 @@ open Example.xcodeproj
 ```
 
 **Live Network Test:**
-The "URLSession Integration" demo includes a live HTTPS request to `example.com` with pinning validation.
+The "URLSession Integration" demo includes a live HTTPS request to `example.com` with pinning validation. The Example app uses permissive mode for demonstration purposes—production apps should use strict mode.
 
 See [`Example/README.md`](Example/README.md) for detailed documentation.
 

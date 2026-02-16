@@ -23,9 +23,9 @@ final class ThreadSafetyTests: XCTestCase {
 
         // Create different configurations
         let configs = (0..<iterations).map { index in
-            PinGuard.Configuration(
+            PinGuardConfiguration(
                 environments: [
-                    .prod: PinGuard.Configuration.EnvironmentConfiguration(
+                    .prod: PinGuardEnvironmentConfiguration(
                         policySet: PolicySet(policies: [
                             HostPolicy(
                                 pattern: .exact("example\(index).com"),
@@ -73,9 +73,9 @@ final class ThreadSafetyTests: XCTestCase {
         let expectation = expectation(description: "All operations complete")
         expectation.expectedFulfillmentCount = totalOps
 
-        let config = PinGuard.Configuration(
+        let config = PinGuardConfiguration(
             environments: [
-                .prod: PinGuard.Configuration.EnvironmentConfiguration(
+                .prod: PinGuardEnvironmentConfiguration(
                     policySet: PolicySet(policies: [
                         HostPolicy(
                             pattern: .exact("test.com"),
@@ -129,7 +129,7 @@ final class ThreadSafetyTests: XCTestCase {
         // Builder is meant to be used on a single thread during configuration
         // This is acceptable as configuration is typically done once at startup
 
-        var builder = PinGuard.Builder()
+        var builder = PinGuardBuilder()
         builder.environment(
             .prod,
             policySet: PolicySet(policies: []),
