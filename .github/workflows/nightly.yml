@@ -83,13 +83,25 @@ jobs:
       - name: List available simulators
         run: xcrun simctl list devices available
 
+      - name: Sanitize destination for cache key
+        id: dest
+        run: |
+          set -euo pipefail
+          raw='${{ matrix.destination }}'
+          # Cache key cannot contain commas; also avoid spaces/parentheses/etc.
+          safe="$(echo "$raw" \
+            | tr ', ' '__' \
+            | tr '=/()' '-----' \
+            | tr -cd 'A-Za-z0-9_.-')"
+          echo "safe=$safe" >> "$GITHUB_OUTPUT"
+
       - name: Cache Example SPM
         uses: actions/cache@v4.2.2
         with:
           path: Example/.build
-          key: ${{ runner.os }}-example-nightly-${{ matrix.destination }}-${{ hashFiles('**/Package.resolved') }}
+          key: ${{ runner.os }}-example-nightly-${{ steps.dest.outputs.safe }}-${{ hashFiles('**/Package.resolved') }}
           restore-keys: |
-            ${{ runner.os }}-example-nightly-${{ matrix.destination }}-
+            ${{ runner.os }}-example-nightly-${{ steps.dest.outputs.safe }}-
             ${{ runner.os }}-example-nightly-
 
       - name: Resolve packages (Example)
@@ -144,8 +156,10 @@ jobs:
         run: |
           set -euo pipefail
 
-          swift build --build-tests -c release
+          # Build library for macOS (Release)
+          swift build -c release
 
+          # Build library for iOS Simulator (Release)
           ARCH="$(uname -m)"
           if [ "$ARCH" = "arm64" ]; then
             TRIPLE="arm64-apple-ios15.0-simulator"
