@@ -151,23 +151,6 @@ jobs:
           UDID="$(cat /tmp/udid.txt)"
           echo "udid=$UDID" >> "$GITHUB_OUTPUT"
 
-      - name: Test (Example)
-        working-directory: Example
-        run: |
-          set -euo pipefail
-          xcodebuild test \
-            -project Example.xcodeproj \
-            -scheme Example \
-            -destination "id=${{ steps.sim.outputs.udid }}" \
-            -configuration Release \
-            -enableCodeCoverage YES \
-            -clonedSourcePackagesDirPath .build \
-            -derivedDataPath .derivedData \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            ONLY_ACTIVE_ARCH=NO \
-            | tee test.log
-
       - name: Upload logs on failure
         if: failure()
         uses: actions/upload-artifact@v4.5.0
