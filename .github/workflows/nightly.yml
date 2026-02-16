@@ -123,22 +123,30 @@ jobs:
           set -euo pipefail
           NAME='${{ matrix.deviceName }}'
 
-          python3 - <<'PY'
+          python3 - "$NAME" <<'PY' > /tmp/udid.txt
           import json, subprocess, sys
+
           name = sys.argv[1]
-          out = subprocess.check_output(["xcrun","simctl","list","devices","available","-j"], text=True)
+          out = subprocess.check_output(
+              ["xcrun", "simctl", "list", "devices", "available", "-j"],
+              text=True
+          )
           data = json.loads(out)
+
           for runtime, devices in data.get("devices", {}).items():
-            for d in devices:
-              if d.get("name") == name and d.get("isAvailable", False):
-                print(d.get("udid",""))
-                sys.exit(0)
-          sys.exit(1)
-          PY "$NAME" > /tmp/udid.txt || {
+              for d in devices:
+                  if d.get("name") == name and d.get("isAvailable", False):
+                      print(d.get("udid", ""))
+                      raise SystemExit(0)
+
+          raise SystemExit(1)
+          PY
+
+          if [ ! -s /tmp/udid.txt ]; then
             echo "❌ Simulator not found: $NAME"
             xcrun simctl list devices available
             exit 1
-          }
+          fi
 
           UDID="$(cat /tmp/udid.txt)"
           echo "udid=$UDID" >> "$GITHUB_OUTPUT"
