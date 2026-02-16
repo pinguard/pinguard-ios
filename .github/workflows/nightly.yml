@@ -67,10 +67,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        destination:
-          - platform=iOS Simulator,name=iPhone 16
-          - platform=iOS Simulator,name=iPhone 16 Pro
-          - platform=iOS Simulator,name=iPad Pro 13-inch (M4)
+        deviceName:
+          - iPhone 16
+          - iPhone 16 Pro
+          - iPad Pro 13-inch (M4)
     steps:
       - name: Checkout
         uses: actions/checkout@v4.2.2
@@ -112,6 +112,19 @@ jobs:
             -project Example.xcodeproj \
             -scheme Example
 
+      - name: Resolve simulator UDID
+        id: sim
+        run: |
+          set -euo pipefail
+          NAME='${{ matrix.deviceName }}'
+          UDID="$(xcrun simctl list devices available | sed -nE "s/.*${NAME} \\(([-0-9A-F]+)\\) \\(.*\\).*/\\1/p" | head -n 1)"
+          if [ -z "$UDID" ]; then
+            echo "❌ Simulator not found: $NAME"
+            xcrun simctl list devices available
+            exit 1
+          fi
+          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+
       - name: Test (Example)
         working-directory: Example
         run: |
@@ -119,7 +132,7 @@ jobs:
           xcodebuild test \
             -project Example.xcodeproj \
             -scheme Example \
-            -destination "${{ matrix.destination }}" \
+            -destination "id=${{ steps.sim.outputs.udid }}" \
             -configuration Release \
             -enableCodeCoverage YES \
             CODE_SIGN_IDENTITY="" \
