@@ -17,7 +17,6 @@ public final class PinGuardURLSessionDelegate: NSObject, URLSessionDelegate, URL
         self.mtls = mtls
     }
 
-    @MainActor
     public convenience init(mtls: MTLSConfiguration? = nil) {
         self.init(pinGuard: .shared, mtls: mtls)
     }

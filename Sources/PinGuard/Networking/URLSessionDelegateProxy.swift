@@ -40,9 +40,7 @@ public final class PinGuardSession {
     /// - Parameter configuration: The `URLSessionConfiguration` to use. Defaults to `.default`.
     ///
     /// This initializer reads the current shared PinGuard configuration (including any active mTLS
-    /// settings) and constructs a session accordingly. Marked `@MainActor` to align with typical
-    /// shared configuration access patterns in UI contexts.
-    @MainActor
+    /// settings) and constructs a session accordingly.
     public convenience init(configuration: URLSessionConfiguration = .default) {
         let config = PinGuard.shared.currentConfiguration()
         self.init(configuration: configuration, pinGuard: .shared, mtls: config.activeMTLS)
