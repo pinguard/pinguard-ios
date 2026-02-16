@@ -71,4 +71,10 @@ public struct TrustDecision: Equatable, Sendable {
     public let isTrusted: Bool
     public let reason: Reason
     public let events: [PinGuardEvent]
+
+    public init(isTrusted: Bool, reason: Reason, events: [PinGuardEvent]) {
+        self.isTrusted = isTrusted
+        self.reason = reason
+        self.events = events
+    }
 }

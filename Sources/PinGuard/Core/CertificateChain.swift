@@ -47,7 +47,7 @@ struct CertificateChain {
 /// evaluation, including the Base64-encoded SHA-256 hashes of the certificate (DER) and
 /// its Subject Public Key Info (SPKI), along with the certificate's scope in the chain
 /// (leaf, intermediate, or root).
-public struct CertificateCandidate {
+struct CertificateCandidate {
 
     let certificate: SecCertificate
     let spkiHash: String
@@ -102,8 +102,25 @@ public struct ChainSummary: Equatable, Sendable {
     public let issuerCommonName: String?
     public let sanCount: Int
 
-    public init(candidates: [CertificateCandidate],
-                trust: SecTrust?) {
+    /// Creates a `ChainSummary` with explicit values for the leaf common name, issuer common name,
+    /// and the number of Subject Alternative Name (SAN) entries.
+    ///
+    /// - Parameters:
+    ///   - leafCommonName: The redacted common name of the leaf certificate, if available.
+    ///   - issuerCommonName: The redacted common name of the issuer certificate, if available.
+    ///   - sanCount: The number of SAN entries found on the leaf certificate.
+    public init(leafCommonName: String?, issuerCommonName: String?, sanCount: Int) {
+        self.leafCommonName = leafCommonName
+        self.issuerCommonName = issuerCommonName
+        self.sanCount = sanCount
+    }
+
+    /// Derives a `ChainSummary` by inspecting the evaluated certificate chain and optional trust.
+    ///
+    /// - Parameters:
+    ///   - candidates: The ordered list of computed certificate candidates (leaf first).
+    ///   - trust: The optional trust object that can be used to resolve the issuer certificate.
+    init(candidates: [CertificateCandidate], trust: SecTrust?) {
         guard let leaf = candidates.first else {
             self.leafCommonName = nil
             self.issuerCommonName = nil

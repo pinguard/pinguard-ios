@@ -6,7 +6,6 @@
 //
 
 @testable import PinGuard
-import SwiftUI
 import XCTest
 
 final class ThreadSafetyTests: XCTestCase {
@@ -43,7 +42,7 @@ final class ThreadSafetyTests: XCTestCase {
             await withTaskGroup(of: Void.self) { group in
                 for config in configs {
                     group.addTask { @Sendable in
-                        await pinGuard.update(configuration: config)
+                        pinGuard.update(configuration: config)
                         await MainActor.run {
                             expectation.fulfill()
                         }
@@ -104,7 +103,7 @@ final class ThreadSafetyTests: XCTestCase {
                 // Add write tasks
                 for _ in 0..<writeCount {
                     group.addTask { @Sendable in
-                        await pinGuard.update(configuration: config)
+                        pinGuard.update(configuration: config)
                         await MainActor.run {
                             expectation.fulfill()
                         }
@@ -143,7 +142,7 @@ final class ThreadSafetyTests: XCTestCase {
 
     func testPolicyResolverImmutableAndThreadSafe() async {
         // Wrap non-Sendable values in a local @unchecked Sendable container for test purposes
-        struct _UncheckedSendableResolverContext: @unchecked Sendable {
+        struct UncheckedSendableResolverContext: @unchecked Sendable {
             let resolver: PolicyResolver
             let host: String
         }
@@ -154,7 +153,7 @@ final class ThreadSafetyTests: XCTestCase {
         ])
 
         let resolver = PolicyResolver(policySet: policySet)
-        let ctx = _UncheckedSendableResolverContext(resolver: resolver, host: "example.com")
+        let ctx = UncheckedSendableResolverContext(resolver: resolver, host: "example.com")
 
         let iterations = 100
         let expectation = expectation(description: "All resolutions complete")
