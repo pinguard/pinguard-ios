@@ -7,32 +7,14 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		52E4E9EB2F32067A000AD10B /* PinGuard in Frameworks */ = {isa = PBXBuildFile; productRef = 52E4E9EA2F32067A000AD10B /* PinGuard */; };
 		52E4EA022F320833000AD10B /* PinGuard in Frameworks */ = {isa = PBXBuildFile; productRef = 52E4EA012F320833000AD10B /* PinGuard */; };
-		52E4EA042F320833000AD10B /* PinGuardTestSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 52E4EA032F320833000AD10B /* PinGuardTestSupport */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		52E4E9BD2F320209000AD10B /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 52E4E9A72F320208000AD10B /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 52E4E9AE2F320208000AD10B;
-			remoteInfo = Example;
-		};
-		52E4E9C72F320209000AD10B /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 52E4E9A72F320208000AD10B /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 52E4E9AE2F320208000AD10B;
-			remoteInfo = Example;
-		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		52E4E9AF2F320208000AD10B /* Example.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Example.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		52E4E9BC2F320209000AD10B /* ExampleTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ExampleTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		52E4E9C62F320209000AD10B /* ExampleUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ExampleUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -49,22 +31,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				52E4EA022F320833000AD10B /* PinGuard in Frameworks */,
-				52E4E9EB2F32067A000AD10B /* PinGuard in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		52E4E9B92F320209000AD10B /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				52E4EA042F320833000AD10B /* PinGuardTestSupport in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		52E4E9C32F320209000AD10B /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -83,8 +49,6 @@
 			isa = PBXGroup;
 			children = (
 				52E4E9AF2F320208000AD10B /* Example.app */,
-				52E4E9BC2F320209000AD10B /* ExampleTests.xctest */,
-				52E4E9C62F320209000AD10B /* ExampleUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -109,53 +73,11 @@
 			);
 			name = Example;
 			packageProductDependencies = (
-				52E4E9EA2F32067A000AD10B /* PinGuard */,
 				52E4EA012F320833000AD10B /* PinGuard */,
 			);
 			productName = Example;
 			productReference = 52E4E9AF2F320208000AD10B /* Example.app */;
 			productType = "com.apple.product-type.application";
-		};
-		52E4E9BB2F320209000AD10B /* ExampleTests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 52E4E9D32F320209000AD10B /* Build configuration list for PBXNativeTarget "ExampleTests" */;
-			buildPhases = (
-				52E4E9B82F320209000AD10B /* Sources */,
-				52E4E9B92F320209000AD10B /* Frameworks */,
-				52E4E9BA2F320209000AD10B /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				52E4E9BE2F320209000AD10B /* PBXTargetDependency */,
-			);
-			name = ExampleTests;
-			packageProductDependencies = (
-				52E4EA032F320833000AD10B /* PinGuardTestSupport */,
-			);
-			productName = ExampleTests;
-			productReference = 52E4E9BC2F320209000AD10B /* ExampleTests.xctest */;
-			productType = "com.apple.product-type.bundle.unit-test";
-		};
-		52E4E9C52F320209000AD10B /* ExampleUITests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 52E4E9D62F320209000AD10B /* Build configuration list for PBXNativeTarget "ExampleUITests" */;
-			buildPhases = (
-				52E4E9C22F320209000AD10B /* Sources */,
-				52E4E9C32F320209000AD10B /* Frameworks */,
-				52E4E9C42F320209000AD10B /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				52E4E9C82F320209000AD10B /* PBXTargetDependency */,
-			);
-			name = ExampleUITests;
-			packageProductDependencies = (
-			);
-			productName = ExampleUITests;
-			productReference = 52E4E9C62F320209000AD10B /* ExampleUITests.xctest */;
-			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 /* End PBXNativeTarget section */
 
@@ -169,14 +91,6 @@
 				TargetAttributes = {
 					52E4E9AE2F320208000AD10B = {
 						CreatedOnToolsVersion = 26.2;
-					};
-					52E4E9BB2F320209000AD10B = {
-						CreatedOnToolsVersion = 26.2;
-						TestTargetID = 52E4E9AE2F320208000AD10B;
-					};
-					52E4E9C52F320209000AD10B = {
-						CreatedOnToolsVersion = 26.2;
-						TestTargetID = 52E4E9AE2F320208000AD10B;
 					};
 				};
 			};
@@ -198,28 +112,12 @@
 			projectRoot = "";
 			targets = (
 				52E4E9AE2F320208000AD10B /* Example */,
-				52E4E9BB2F320209000AD10B /* ExampleTests */,
-				52E4E9C52F320209000AD10B /* ExampleUITests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		52E4E9AD2F320208000AD10B /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		52E4E9BA2F320209000AD10B /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		52E4E9C42F320209000AD10B /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -236,33 +134,9 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		52E4E9B82F320209000AD10B /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		52E4E9C22F320209000AD10B /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		52E4E9BE2F320209000AD10B /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 52E4E9AE2F320208000AD10B /* Example */;
-			targetProxy = 52E4E9BD2F320209000AD10B /* PBXContainerItemProxy */;
-		};
-		52E4E9C82F320209000AD10B /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 52E4E9AE2F320208000AD10B /* Example */;
-			targetProxy = 52E4E9C72F320209000AD10B /* PBXContainerItemProxy */;
-		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
@@ -319,7 +193,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
@@ -377,7 +251,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
@@ -407,7 +281,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UIRequiresFullScreen = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -425,7 +299,7 @@
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -447,7 +321,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UIRequiresFullScreen = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -464,110 +338,8 @@
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Release;
-		};
-		52E4E9D42F320209000AD10B /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = QX735LV746;
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.cagatayegilmez.ExampleTests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				SUPPORTS_MACCATALYST = NO;
-				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
-				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Example.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Example";
-			};
-			name = Debug;
-		};
-		52E4E9D52F320209000AD10B /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = QX735LV746;
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.cagatayegilmez.ExampleTests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				SUPPORTS_MACCATALYST = NO;
-				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
-				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Example.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Example";
-			};
-			name = Release;
-		};
-		52E4E9D72F320209000AD10B /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = QX735LV746;
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.cagatayegilmez.ExampleUITests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				SUPPORTS_MACCATALYST = NO;
-				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
-				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_TARGET_NAME = Example;
-			};
-			name = Debug;
-		};
-		52E4E9D82F320209000AD10B /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = QX735LV746;
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.cagatayegilmez.ExampleUITests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				SUPPORTS_MACCATALYST = NO;
-				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
-				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_TARGET_NAME = Example;
 			};
 			name = Release;
 		};
@@ -592,24 +364,6 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		52E4E9D32F320209000AD10B /* Build configuration list for PBXNativeTarget "ExampleTests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				52E4E9D42F320209000AD10B /* Debug */,
-				52E4E9D52F320209000AD10B /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		52E4E9D62F320209000AD10B /* Build configuration list for PBXNativeTarget "ExampleUITests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				52E4E9D72F320209000AD10B /* Debug */,
-				52E4E9D82F320209000AD10B /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
@@ -620,17 +374,9 @@
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		52E4E9EA2F32067A000AD10B /* PinGuard */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = PinGuard;
-		};
 		52E4EA012F320833000AD10B /* PinGuard */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = PinGuard;
-		};
-		52E4EA032F320833000AD10B /* PinGuardTestSupport */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = PinGuardTestSupport;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

@@ -22,35 +22,34 @@ jobs:
         run: |
           sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
           xcodebuild -version
+          swift --version
 
       - name: Validate tag format
         run: |
           set -euo pipefail
           TAG="${{ github.ref_name }}"
           if ! [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$ ]]; then
-            echo "❌ Invalid tag format: $TAG"
+            echo "Invalid tag format: $TAG"
             exit 1
           fi
-          echo "✅ Tag OK: $TAG"
+          echo "Tag OK: $TAG"
 
       - name: Cache SPM build
         uses: actions/cache@v4.2.2
         with:
           path: .build
-          key: ${{ runner.os }}-spm-release-${{ hashFiles('**/Package.resolved') }}
+          key: ${{ runner.os }}-spm-release-${{ hashFiles('Package.swift', '**/Package.resolved') }}
           restore-keys: |
             ${{ runner.os }}-spm-release-
             ${{ runner.os }}-spm-
 
-      - name: SwiftLint (skip if not configured)
+      - name: Install SwiftLint (if missing)
+        run: command -v swiftlint >/dev/null 2>&1 || brew install swiftlint
+
+      - name: SwiftLint
         run: |
           set -euo pipefail
-          if [ -f ".swiftlint.yml" ] || [ -f ".swiftlint.yaml" ]; then
-            brew install swiftlint
-            swiftlint lint --strict --reporter github-actions-logging
-          else
-            echo "No SwiftLint config found; skipping lint."
-          fi
+          swiftlint lint --strict --reporter github-actions-logging
 
       - name: Validate Package.swift
         run: |
@@ -64,6 +63,22 @@ jobs:
           swift build -c release
           swift test --parallel
 
+      - name: Build all platforms
+        run: |
+          set -euo pipefail
+          for DEST in \
+            "generic/platform=iOS Simulator" \
+            "generic/platform=macOS" \
+            "generic/platform=tvOS Simulator" \
+            "generic/platform=watchOS Simulator" \
+            "generic/platform=visionOS Simulator"; do
+            xcodebuild build \
+              -scheme PinGuard \
+              -destination "$DEST" \
+              -configuration Release \
+              CODE_SIGNING_ALLOWED=NO
+          done
+
       - name: Build Example app (sanity)
         working-directory: Example
         run: |
@@ -71,10 +86,11 @@ jobs:
           xcodebuild build \
             -project Example.xcodeproj \
             -scheme Example \
-            -destination "platform=iOS Simulator,name=iPhone 15 Pro" \
+            -destination "generic/platform=iOS Simulator" \
             -configuration Release \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
             ONLY_ACTIVE_ARCH=NO
 
   create-release:
@@ -101,7 +117,7 @@ jobs:
             echo
             echo "\`\`\`swift"
             echo "dependencies: ["
-            echo "  .package(url: \"https://github.com/pinguard/pinguard-ios.git\", from: \"${VERSION}\")"
+            echo "  .package(url: \"https://github.com/pinguard/pinguard-ios.git\", from: \"${VERSION#v}\")"
             echo "]"
             echo "\`\`\`"
             echo
@@ -135,7 +151,7 @@ jobs:
         run: |
           if [ "${{ needs.validate.result }}" != "success" ] || \
              [ "${{ needs.create-release.result }}" != "success" ]; then
-            echo "❌ Release workflow failed"
+            echo "Release workflow failed"
             exit 1
           fi
-          echo "✅ Release published: ${{ github.ref_name }}"
+          echo "Release published: ${{ github.ref_name }}"

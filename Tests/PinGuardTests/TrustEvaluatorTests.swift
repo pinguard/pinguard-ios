@@ -6,69 +6,150 @@
 //
 
 @testable import PinGuard
-import Security
-import XCTest
+import Testing
 
-final class TrustEvaluatorTests: XCTestCase {
+@Suite
+struct TrustEvaluatorTests {
 
-    func testSPKIHashMatchesExpected() throws {
-        let modulus = [UInt8](repeating: 0x01, count: 256)
-        let exponent = [UInt8](repeating: 0x01, count: 3)
-        let pkcs1 = asn1Sequence(asn1Integer(modulus) + asn1Integer(exponent))
-        let keyData = Data(pkcs1)
-        let attributes: [String: Any] = [
-            kSecAttrKeyType as String: kSecAttrKeyTypeRSA,
-            kSecAttrKeyClass as String: kSecAttrKeyClassPublic,
-            kSecAttrKeySizeInBits as String: 2048
-        ]
-        let key = SecKeyCreateWithData(keyData as CFData, attributes as CFDictionary, nil)
-        XCTAssertNotNil(key)
-        guard let key else {
-            return XCTFail("Failed to create SecKey")
-        }
+    private let host = "api.example.com"
+    private let leafPin = Pin(type: .spki, hash: TestCertificates.leafSPKIHash)
+    private let unknownPin = Pin(type: .spki, hash: "unknown")
 
-        let hash = try PinHasher.spkiHash(for: key)
-        XCTAssertEqual(hash, "Y7EKzelfzqmyMnNRDIX8cecAf6wj1nk7nT25ws/qnVo=")
+    private func evaluator(policy: PinningPolicy?,
+                           systemTrusted: Bool,
+                           sink: RecordingEventSink = RecordingEventSink()) -> TrustEvaluator {
+        let policies = policy.map { [HostPolicy(pattern: .exact(host), policy: $0)] } ?? []
+        return TrustEvaluator(policySet: PolicySet(policies: policies),
+                              eventSinks: [sink],
+                              systemTrustEvaluator: FakeSystemTrustEvaluator(isTrusted: systemTrusted,
+                                                                             errorDescription: "expired"))
     }
 
-    func testRotationBackupPinIsAccepted() {
-        let primaryPin = Pin(type: .spki, hash: "primaryHash", role: .primary)
-        let backupPin = Pin(type: .spki, hash: "backupHash", role: .backup)
-        let policy = PinningPolicy(pins: [primaryPin, backupPin], failStrategy: .strict)
-
-        XCTAssertEqual(policy.pins.count, 2, "Rotation requires both primary and backup pins")
-        XCTAssertTrue(policy.pins.contains {
-            $0.role == .primary
-        }, "Should have primary pin")
-        XCTAssertTrue(policy.pins.contains {
-            $0.role == .backup
-        }, "Should have backup pin")
-        XCTAssertEqual(primaryPin.role, .primary)
-        XCTAssertEqual(backupPin.role, .backup)
+    @Test
+    func missingPolicyIsRejectedBeforeSystemTrust() async throws {
+        let trust = try #require(TestCertificates.makeChainTrust())
+        let decision = await evaluator(policy: nil, systemTrusted: true).evaluate(serverTrust: trust, host: host)
+        #expect(decision == TrustDecision(isTrusted: false,
+                                          reason: .policyMissing,
+                                          events: [.policyMissing(host: host)]))
     }
 
-    private func asn1Integer(_ bytes: [UInt8]) -> [UInt8] {
-        var value = bytes
-        if let first = value.first, first & 0x80 != 0 {
-            value.insert(0x00, at: 0)
-        }
-        return [0x02] + lengthBytes(value.count) + value
+    @Test
+    func systemTrustFailureIsFatalUnderStrictPolicy() async throws {
+        let trust = try #require(TestCertificates.makeChainTrust())
+        let policy = PinningPolicy(pins: [leafPin], failStrategy: .strict)
+        let decision = await evaluator(policy: policy, systemTrusted: false).evaluate(serverTrust: trust, host: host)
+        #expect(decision.isTrusted == false)
+        #expect(decision.reason == .trustFailed)
+        #expect(decision.events == [.systemTrustEvaluated(host: host, isTrusted: false),
+                                    .systemTrustFailed(host: host, error: "expired")])
     }
 
-    private func asn1Sequence(_ content: [UInt8]) -> [UInt8] {
-        [0x30] + lengthBytes(content.count) + content
+    @Test
+    func systemTrustFailureIsAllowedUnderPermissivePolicy() async throws {
+        let trust = try #require(TestCertificates.makeChainTrust())
+        let policy = PinningPolicy(pins: [leafPin], failStrategy: .permissive)
+        let decision = await evaluator(policy: policy, systemTrusted: false).evaluate(serverTrust: trust, host: host)
+        #expect(decision.isTrusted)
+        #expect(decision.reason == .systemTrustFailedPermissive)
+        #expect(decision.events.last == .systemTrustFailedPermissive(host: host))
     }
 
-    private func lengthBytes(_ length: Int) -> [UInt8] {
-        if length < 128 {
-            return [UInt8(length)]
+    @Test
+    func systemTrustFailureIsIgnoredWhenNotRequired() async throws {
+        let trust = try #require(TestCertificates.makeChainTrust())
+        let policy = PinningPolicy(pins: [leafPin], requireSystemTrust: false)
+        let decision = await evaluator(policy: policy, systemTrusted: false).evaluate(serverTrust: trust, host: host)
+        #expect(decision.reason == .pinMatch)
+    }
+
+    @Test
+    func matchingPinIsTrustedAndEventsReachSink() async throws {
+        let trust = try #require(TestCertificates.makeChainTrust())
+        let sink = RecordingEventSink()
+        let policy = PinningPolicy(pins: [unknownPin, leafPin])
+        let decision = await evaluator(policy: policy, systemTrusted: true, sink: sink)
+            .evaluate(serverTrust: trust, host: host)
+        #expect(decision.isTrusted)
+        #expect(decision.reason == .pinMatch)
+        #expect(decision.events.last == .pinMatched(host: host, pins: [leafPin]))
+        #expect(sink.events == decision.events)
+    }
+
+    @Test
+    func mismatchUnderStrictPolicyIsRejected() async throws {
+        let trust = try #require(TestCertificates.makeChainTrust())
+        let policy = PinningPolicy(pins: [unknownPin], failStrategy: .strict)
+        let decision = await evaluator(policy: policy, systemTrusted: true).evaluate(serverTrust: trust, host: host)
+        #expect(decision.isTrusted == false)
+        #expect(decision.reason == .pinningFailed)
+        #expect(decision.events.last == .pinMismatch(host: host))
+    }
+
+    @Test
+    func mismatchWithFallbackIsAllowedWhenSystemTrusted() async throws {
+        let trust = try #require(TestCertificates.makeChainTrust())
+        let policy = PinningPolicy(pins: [unknownPin], allowSystemTrustFallback: true)
+        let decision = await evaluator(policy: policy, systemTrusted: true).evaluate(serverTrust: trust, host: host)
+        #expect(decision.reason == .pinMismatchAllowedByFallback)
+        #expect(decision.events.last == .pinMismatchAllowedByFallback(host: host))
+    }
+
+    @Test
+    func mismatchUnderPermissivePolicyIsAllowedWhenSystemTrusted() async throws {
+        let trust = try #require(TestCertificates.makeChainTrust())
+        let policy = PinningPolicy(pins: [unknownPin], failStrategy: .permissive)
+        let decision = await evaluator(policy: policy, systemTrusted: true).evaluate(serverTrust: trust, host: host)
+        #expect(decision.reason == .pinMismatchPermissive)
+    }
+
+    @Test
+    func fallbackNeedsSystemTrust() async throws {
+        let trust = try #require(TestCertificates.makeChainTrust())
+        let policy = PinningPolicy(pins: [unknownPin],
+                                   failStrategy: .permissive,
+                                   requireSystemTrust: false,
+                                   allowSystemTrustFallback: true)
+        let decision = await evaluator(policy: policy, systemTrusted: false).evaluate(serverTrust: trust, host: host)
+        #expect(decision.reason == .pinningFailed)
+    }
+
+    @Test
+    func emptyPinSetEmitsEventAndFollowsMismatchRules() async throws {
+        let trust = try #require(TestCertificates.makeChainTrust())
+        let strict = PinningPolicy(pins: [])
+        let strictDecision = await evaluator(policy: strict, systemTrusted: true)
+            .evaluate(serverTrust: trust, host: host)
+        #expect(strictDecision.reason == .pinningFailed)
+        #expect(strictDecision.events.contains(.pinSetEmpty(host: host)))
+
+        let fallback = PinningPolicy(pins: [], allowSystemTrustFallback: true)
+        let fallbackDecision = await evaluator(policy: fallback, systemTrusted: true)
+            .evaluate(serverTrust: trust, host: host)
+        #expect(fallbackDecision.reason == .pinMismatchAllowedByFallback)
+    }
+
+    @Test
+    func hostIsNormalizedBeforeResolution() async throws {
+        let trust = try #require(TestCertificates.makeChainTrust())
+        let decision = await evaluator(policy: PinningPolicy(pins: [leafPin]), systemTrusted: true)
+            .evaluate(serverTrust: trust, host: "API.EXAMPLE.COM.")
+        #expect(decision.reason == .pinMatch)
+        #expect(decision.events.first == .systemTrustEvaluated(host: host, isTrusted: true))
+    }
+
+    @Test
+    func realSystemEvaluatorRejectsSelfSignedChain() async throws {
+        let trust = try #require(TestCertificates.makeChainTrust())
+        let evaluator = TrustEvaluator(policySet: PolicySet(policies: [
+            HostPolicy(pattern: .exact(host), policy: PinningPolicy(pins: [leafPin]))
+        ]))
+        let decision = await evaluator.evaluate(serverTrust: trust, host: host)
+        #expect(decision.reason == .trustFailed)
+        guard case .systemTrustFailed(_, let error)? = decision.events.last else {
+            Issue.record("Expected a systemTrustFailed event, got \(decision.events)")
+            return
         }
-        var len = length
-        var bytes: [UInt8] = []
-        while len > 0 {
-            bytes.insert(UInt8(len & 0xff), at: 0)
-            len >>= 8
-        }
-        return [0x80 | UInt8(bytes.count)] + bytes
+        #expect(error?.isEmpty == false)
     }
 }
