@@ -1,4 +1,4 @@
-// swift-tools-version: 5.9
+// swift-tools-version: 6.2
 import PackageDescription
 
 let package = Package(
@@ -21,7 +21,10 @@ let package = Package(
             name: "PinGuard",
             path: "Sources/PinGuard",
             swiftSettings: [
-                .define("PINGUARD_SPM")
+                .swiftLanguageMode(.v6),
+                .enableUpcomingFeature("ExistentialAny"),
+                .enableUpcomingFeature("MemberImportVisibility"),
+                .enableUpcomingFeature("NonisolatedNonsendingByDefault")
             ],
             linkerSettings: [
                 .linkedFramework("Security")
@@ -32,7 +35,13 @@ let package = Package(
             dependencies: [
                 "PinGuard"
             ],
-            path: "Tests/PinGuardTests"
+            path: "Tests/PinGuardTests",
+            swiftSettings: [
+                .swiftLanguageMode(.v6),
+                .enableUpcomingFeature("ExistentialAny"),
+                .enableUpcomingFeature("MemberImportVisibility"),
+                .enableUpcomingFeature("NonisolatedNonsendingByDefault")
+            ]
         )
     ]
 )

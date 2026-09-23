@@ -6,152 +6,67 @@
 //
 
 @testable import PinGuard
-import XCTest
+import Testing
 
-final class PolicyResolverTests: XCTestCase {
+@Suite
+struct PolicyResolverTests {
 
-    // MARK: - Resolution Priority
+    private func policy(_ hash: String) -> PinningPolicy {
+        PinningPolicy(pins: [Pin(type: .spki, hash: hash)])
+    }
 
-    func testExactMatchTakesPriorityOverWildcard() {
-        let exactPolicy = PinningPolicy(pins: [Pin(type: .spki, hash: "exact")])
-        let wildcardPolicy = PinningPolicy(pins: [Pin(type: .spki, hash: "wildcard")])
+    @Test
+    func exactMatchWinsOverWildcardRegardlessOfOrder() {
+        let orderings: [[HostPolicy]] = [
+            [HostPolicy(pattern: .wildcard("example.com"), policy: policy("wildcard")),
+             HostPolicy(pattern: .exact("api.example.com"), policy: policy("exact"))],
+            [HostPolicy(pattern: .exact("api.example.com"), policy: policy("exact")),
+             HostPolicy(pattern: .wildcard("example.com"), policy: policy("wildcard"))]
+        ]
+        for policies in orderings {
+            let resolver = PolicyResolver(policySet: PolicySet(policies: policies))
+            #expect(resolver.resolve(host: "api.example.com")?.pins.first?.hash == "exact")
+        }
+    }
 
+    @Test
+    func mostSpecificWildcardWins() {
         let set = PolicySet(policies: [
-            HostPolicy(pattern: .wildcard("example.com"), policy: wildcardPolicy),
-            HostPolicy(pattern: .exact("api.example.com"), policy: exactPolicy)
+            HostPolicy(pattern: .wildcard("com"), policy: policy("com")),
+            HostPolicy(pattern: .wildcard("example.com"), policy: policy("example")),
+            HostPolicy(pattern: .wildcard("api.example.com"), policy: policy("api"))
         ])
-
         let resolver = PolicyResolver(policySet: set)
-        let resolved = resolver.resolve(host: "api.example.com")
-
-        XCTAssertEqual(resolved?.pins.first?.hash, "exact")
+        #expect(resolver.resolve(host: "v1.api.example.com")?.pins.first?.hash == "api")
+        #expect(resolver.resolve(host: "api.example.com")?.pins.first?.hash == "example")
     }
 
-    func testExactMatchTakesPriorityRegardlessOfOrder() {
-        let exactPolicy = PinningPolicy(pins: [Pin(type: .spki, hash: "exact")])
-        let wildcardPolicy = PinningPolicy(pins: [Pin(type: .spki, hash: "wildcard")])
-
-        let set = PolicySet(policies: [
-            HostPolicy(pattern: .exact("api.example.com"), policy: exactPolicy),
-            HostPolicy(pattern: .wildcard("example.com"), policy: wildcardPolicy)
-        ])
-
+    @Test
+    func fallsBackToDefaultPolicy() {
+        let set = PolicySet(policies: [HostPolicy(pattern: .exact("example.com"), policy: policy("specific"))],
+                            defaultPolicy: policy("default"))
         let resolver = PolicyResolver(policySet: set)
-        let resolved = resolver.resolve(host: "api.example.com")
-
-        XCTAssertEqual(resolved?.pins.first?.hash, "exact")
+        #expect(resolver.resolve(host: "other.com")?.pins.first?.hash == "default")
     }
 
-    func testMostSpecificWildcardWins() {
-        let generalPolicy = PinningPolicy(pins: [Pin(type: .spki, hash: "general")])
-        let specificPolicy = PinningPolicy(pins: [Pin(type: .spki, hash: "specific")])
-
-        let set = PolicySet(policies: [
-            HostPolicy(pattern: .wildcard("com"), policy: generalPolicy),
-            HostPolicy(pattern: .wildcard("example.com"), policy: specificPolicy)
-        ])
-
+    @Test
+    func returnsNilWithoutMatchOrDefault() {
+        let set = PolicySet(policies: [HostPolicy(pattern: .exact("example.com"), policy: policy("specific"))])
         let resolver = PolicyResolver(policySet: set)
-        let resolved = resolver.resolve(host: "api.example.com")
-
-        XCTAssertEqual(resolved?.pins.first?.hash, "specific")
+        #expect(resolver.resolve(host: "other.com") == nil)
+        #expect(PolicyResolver(policySet: PolicySet(policies: [])).resolve(host: "example.com") == nil)
     }
 
-    // MARK: - Default Policy
-
-    func testDefaultPolicyWhenNoMatch() {
-        let defaultPolicy = PinningPolicy(pins: [Pin(type: .spki, hash: "default")])
-        let specificPolicy = PinningPolicy(pins: [Pin(type: .spki, hash: "specific")])
-
-        let set = PolicySet(
-            policies: [
-                HostPolicy(pattern: .exact("example.com"), policy: specificPolicy)
-            ],
-            defaultPolicy: defaultPolicy
-        )
-
-        let resolver = PolicyResolver(policySet: set)
-        let resolved = resolver.resolve(host: "other.com")
-
-        XCTAssertEqual(resolved?.pins.first?.hash, "default")
+    @Test
+    func emptyHostReturnsNilEvenWithDefault() {
+        let resolver = PolicyResolver(policySet: PolicySet(policies: [], defaultPolicy: policy("default")))
+        #expect(resolver.resolve(host: "") == nil)
+        #expect(resolver.resolve(host: "...") == nil)
     }
 
-    func testNoDefaultPolicyReturnsNil() {
-        let specificPolicy = PinningPolicy(pins: [Pin(type: .spki, hash: "specific")])
-
-        let set = PolicySet(policies: [
-            HostPolicy(pattern: .exact("example.com"), policy: specificPolicy)
-        ])
-
-        let resolver = PolicyResolver(policySet: set)
-        let resolved = resolver.resolve(host: "other.com")
-
-        XCTAssertNil(resolved)
-    }
-
-    // MARK: - Edge Cases
-
-    func testEmptyHostReturnsNil() {
-        let policy = PinningPolicy(pins: [Pin(type: .spki, hash: "hash")])
-        let set = PolicySet(policies: [
-            HostPolicy(pattern: .exact("example.com"), policy: policy)
-        ])
-
-        let resolver = PolicyResolver(policySet: set)
-        let resolved = resolver.resolve(host: "")
-
-        XCTAssertNil(resolved)
-    }
-
-    func testNoPoliciesReturnsDefault() {
-        let defaultPolicy = PinningPolicy(pins: [Pin(type: .spki, hash: "default")])
-        let set = PolicySet(policies: [], defaultPolicy: defaultPolicy)
-
-        let resolver = PolicyResolver(policySet: set)
-        let resolved = resolver.resolve(host: "example.com")
-
-        XCTAssertEqual(resolved?.pins.first?.hash, "default")
-    }
-
-    func testNoPoliciesAndNoDefaultReturnsNil() {
-        let set = PolicySet(policies: [])
-        let resolver = PolicyResolver(policySet: set)
-        let resolved = resolver.resolve(host: "example.com")
-
-        XCTAssertNil(resolved)
-    }
-
-    // MARK: - Case Insensitivity
-
-    func testResolutionIsCaseInsensitive() {
-        let policy = PinningPolicy(pins: [Pin(type: .spki, hash: "hash")])
-        let set = PolicySet(policies: [
-            HostPolicy(pattern: .exact("api.example.com"), policy: policy)
-        ])
-
-        let resolver = PolicyResolver(policySet: set)
-
-        XCTAssertNotNil(resolver.resolve(host: "API.EXAMPLE.COM"))
-        XCTAssertNotNil(resolver.resolve(host: "Api.Example.Com"))
-        XCTAssertNotNil(resolver.resolve(host: "api.example.com"))
-    }
-
-    // MARK: - Multiple Matches
-
-    func testMultipleWildcardsSelectMostSpecific() {
-        let comPolicy = PinningPolicy(pins: [Pin(type: .spki, hash: "com")])
-        let examplePolicy = PinningPolicy(pins: [Pin(type: .spki, hash: "example")])
-        let apiPolicy = PinningPolicy(pins: [Pin(type: .spki, hash: "api")])
-
-        let set = PolicySet(policies: [
-            HostPolicy(pattern: .wildcard("com"), policy: comPolicy),
-            HostPolicy(pattern: .wildcard("example.com"), policy: examplePolicy),
-            HostPolicy(pattern: .wildcard("api.example.com"), policy: apiPolicy)
-        ])
-
-        let resolver = PolicyResolver(policySet: set)
-        let resolved = resolver.resolve(host: "v1.api.example.com")
-
-        XCTAssertEqual(resolved?.pins.first?.hash, "api")
+    @Test(arguments: ["API.EXAMPLE.COM", "Api.Example.Com", "api.example.com."])
+    func resolutionIsCaseAndDotInsensitive(host: String) {
+        let set = PolicySet(policies: [HostPolicy(pattern: .exact("api.example.com"), policy: policy("hash"))])
+        #expect(PolicyResolver(policySet: set).resolve(host: host) != nil)
     }
 }

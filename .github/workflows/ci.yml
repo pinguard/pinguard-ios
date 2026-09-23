@@ -21,11 +21,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4.2.2
 
-      - name: Install SwiftLint
-        run: brew install swiftlint
+      - name: Install SwiftLint (if missing)
+        run: command -v swiftlint >/dev/null 2>&1 || brew install swiftlint
 
       - name: Run SwiftLint
-        run: swiftlint lint --strict --reporter github-actions-logging
+        run: |
+          swiftlint version
+          swiftlint lint --strict --reporter github-actions-logging
 
   spm-build-test:
     name: SPM Build & Test (macOS)
@@ -38,12 +40,13 @@ jobs:
         run: |
           sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
           xcodebuild -version
+          swift --version
 
       - name: Cache SPM build
         uses: actions/cache@v4.2.2
         with:
           path: .build
-          key: ${{ runner.os }}-spm-${{ hashFiles('**/Package.resolved') }}
+          key: ${{ runner.os }}-spm-${{ hashFiles('Package.swift', '**/Package.resolved') }}
           restore-keys: |
             ${{ runner.os }}-spm-
 
@@ -87,7 +90,36 @@ jobs:
           path: coverage.lcov
           if-no-files-found: ignore
 
-  example-app-test:
+  platform-build:
+    name: Build (${{ matrix.platform.name }})
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - { name: iOS Simulator, destination: "generic/platform=iOS Simulator" }
+          - { name: tvOS Simulator, destination: "generic/platform=tvOS Simulator" }
+          - { name: watchOS Simulator, destination: "generic/platform=watchOS Simulator" }
+          - { name: visionOS Simulator, destination: "generic/platform=visionOS Simulator" }
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          xcodebuild -version
+
+      - name: Build library
+        run: |
+          set -euo pipefail
+          xcodebuild build \
+            -scheme PinGuard \
+            -destination "${{ matrix.platform.destination }}" \
+            -configuration Release \
+            CODE_SIGNING_ALLOWED=NO
+
+  example-app-build:
     name: Example App (iOS Simulator)
     runs-on: macos-latest
     steps:
@@ -99,56 +131,12 @@ jobs:
           sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
           xcodebuild -version
 
-      - name: List available simulators
-        run: xcrun simctl list devices available
-
-      - name: Pick an available iPhone simulator (dynamic)
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          UDID="$(python3 - <<'PY'
-          import json, subprocess
-          data = json.loads(subprocess.check_output(["xcrun","simctl","list","-j","devices","available"]))
-          prefs = ["iPhone 16 Pro", "iPhone 16", "iPhone 17 Pro", "iPhone 17"]
-
-          def all_devices():
-              for _, devices in data["devices"].items():
-                  for d in devices:
-                      if d.get("isAvailable"):
-                          yield d
-
-          # Prefer known iPhones
-          for preferred in prefs:
-              for d in all_devices():
-                  if d.get("name") == preferred:
-                      print(d["udid"])
-                      raise SystemExit
-
-          # Fallback: first available iPhone
-          for d in all_devices():
-              if str(d.get("name","")).startswith("iPhone"):
-                  print(d["udid"])
-                  raise SystemExit
-
-          raise SystemExit("No available iPhone simulator found")
-          PY
-          )"
-
-          echo "SIM_DEST=platform=iOS Simulator,id=$UDID" >> "$GITHUB_ENV"
-          echo "DEST_KEY=iossim-$UDID" >> "$GITHUB_ENV"
-
-          echo "Chosen UDID: $UDID"
-          echo "SIM_DEST: platform=iOS Simulator,id=$UDID"
-          echo "DEST_KEY: iossim-$UDID"
-
       - name: Cache Example SPM
         uses: actions/cache@v4.2.2
         with:
           path: Example/.build
-          key: ${{ runner.os }}-example-${{ env.DEST_KEY }}-${{ hashFiles('**/Package.resolved') }}
+          key: ${{ runner.os }}-example-${{ hashFiles('Package.swift', '**/Package.resolved') }}
           restore-keys: |
-            ${{ runner.os }}-example-${{ env.DEST_KEY }}-
             ${{ runner.os }}-example-
 
       - name: Resolve packages (Example)
@@ -157,7 +145,8 @@ jobs:
           set -euo pipefail
           xcodebuild -resolvePackageDependencies \
             -project Example.xcodeproj \
-            -scheme Example
+            -scheme Example \
+            -clonedSourcePackagesDirPath .build
 
       - name: Build (Example)
         working-directory: Example
@@ -166,10 +155,12 @@ jobs:
           xcodebuild build \
             -project Example.xcodeproj \
             -scheme Example \
-            -destination "${{ env.SIM_DEST }}" \
+            -destination "generic/platform=iOS Simulator" \
             -configuration Debug \
+            -clonedSourcePackagesDirPath .build \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
             ONLY_ACTIVE_ARCH=NO \
             | tee build.log
 
@@ -178,13 +169,11 @@ jobs:
         uses: actions/upload-artifact@v4.5.0
         with:
           name: example-logs
-          path: |
-            Example/build.log
-            Example/test.log
+          path: Example/build.log
           if-no-files-found: ignore
 
   validate-distribution:
-    name: Validate SPM Distribution (macOS + iOS sim)
+    name: Validate SPM Distribution
     runs-on: macos-latest
     steps:
       - name: Checkout
@@ -199,9 +188,9 @@ jobs:
         run: |
           set -euo pipefail
           swift package dump-package > /dev/null
-          echo "✅ Package.swift OK"
+          echo "Package.swift OK"
 
-      - name: Build for iOS Simulator (SPM cross-build)
+      - name: Build for iOS 15 Simulator (SPM cross-build)
         run: |
           set -euo pipefail
 
@@ -223,7 +212,7 @@ jobs:
           cd "$TEMP_DIR"
 
           cat > Package.swift << 'EOF'
-          // swift-tools-version: 5.9
+          // swift-tools-version: 6.2
           import PackageDescription
 
           let package = Package(
@@ -256,7 +245,7 @@ jobs:
 
           swift package resolve
           swift build
-          echo "✅ Integration OK"
+          echo "Integration OK"
 
   ci-success:
     name: CI Success
@@ -264,7 +253,8 @@ jobs:
     needs:
       - lint
       - spm-build-test
-      - example-app-test
+      - platform-build
+      - example-app-build
       - validate-distribution
     if: always()
     steps:
@@ -272,9 +262,10 @@ jobs:
         run: |
           if [ "${{ needs.lint.result }}" != "success" ] || \
              [ "${{ needs.spm-build-test.result }}" != "success" ] || \
-             [ "${{ needs.example-app-test.result }}" != "success" ] || \
+             [ "${{ needs.platform-build.result }}" != "success" ] || \
+             [ "${{ needs.example-app-build.result }}" != "success" ] || \
              [ "${{ needs.validate-distribution.result }}" != "success" ]; then
-            echo "❌ One or more CI jobs failed"
+            echo "One or more CI jobs failed"
             exit 1
           fi
-          echo "✅ All CI jobs passed"
+          echo "All CI jobs passed"

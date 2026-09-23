@@ -20,32 +20,42 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4.2.2
-      - name: Install SwiftLint
-        run: brew install swiftlint
+
+      - name: Install SwiftLint (if missing)
+        run: command -v swiftlint >/dev/null 2>&1 || brew install swiftlint
+
       - name: Run SwiftLint
-        run: swiftlint lint --strict --reporter github-actions-logging
+        run: |
+          swiftlint version
+          swiftlint lint --strict --reporter github-actions-logging
 
   spm-build-test:
-    name: SPM Build & Test (macOS)
-    runs-on: macos-latest
+    name: SPM Build & Test (${{ matrix.runner }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        runner:
+          - macos-latest
+          - xcode-27
     steps:
       - name: Checkout
         uses: actions/checkout@v4.2.2
 
-      - name: Select Xcode (default)
+      - name: Select Xcode
         run: |
           set -euo pipefail
-          sudo xcode-select -s "$(ls -d /Applications/Xcode*.app | sort | tail -n 1)/Contents/Developer"
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
           xcodebuild -version
+          swift --version
 
       - name: Cache SPM build
         uses: actions/cache@v4.2.2
         with:
           path: .build
-          key: ${{ runner.os }}-spm-nightly-${{ hashFiles('**/Package.resolved') }}
+          key: ${{ matrix.runner }}-spm-nightly-${{ hashFiles('Package.swift', '**/Package.resolved') }}
           restore-keys: |
-            ${{ runner.os }}-spm-nightly-
-            ${{ runner.os }}-spm-
+            ${{ matrix.runner }}-spm-nightly-
 
       - name: Resolve
         run: |
@@ -62,38 +72,62 @@ jobs:
           set -euo pipefail
           swift test --parallel --enable-code-coverage
 
-  example-app-test:
-    name: Example App (Nightly matrix)
+  platform-build:
+    name: Build (${{ matrix.platform.name }})
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - { name: iOS Simulator, destination: "generic/platform=iOS Simulator" }
+          - { name: macOS, destination: "generic/platform=macOS" }
+          - { name: tvOS Simulator, destination: "generic/platform=tvOS Simulator" }
+          - { name: watchOS Simulator, destination: "generic/platform=watchOS Simulator" }
+          - { name: visionOS Simulator, destination: "generic/platform=visionOS Simulator" }
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          xcodebuild -version
+
+      - name: Build library
+        run: |
+          set -euo pipefail
+          xcodebuild build \
+            -scheme PinGuard \
+            -destination "${{ matrix.platform.destination }}" \
+            -configuration Release \
+            CODE_SIGNING_ALLOWED=NO
+
+  example-app-build:
+    name: Example App (${{ matrix.deviceName }})
     runs-on: macos-latest
     strategy:
       fail-fast: false
       matrix:
         deviceName:
-          - iPhone 16
-          - iPhone 16 Pro
+          - iPhone 17
+          - iPhone 17 Pro
           - iPad Pro 13-inch (M4)
     steps:
       - name: Checkout
         uses: actions/checkout@v4.2.2
 
-      - name: Select Xcode (default)
+      - name: Select Xcode
         run: |
           set -euo pipefail
-          sudo xcode-select -s "$(ls -d /Applications/Xcode*.app | sort | tail -n 1)/Contents/Developer"
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
           xcodebuild -version
-
-      - name: List available simulators (short)
-        run: xcrun simctl list devices available | egrep "iPhone|iPad" | head -n 200
 
       - name: Sanitize device name for cache key
         id: dest
         run: |
           set -euo pipefail
           raw='${{ matrix.deviceName }}'
-          safe="$(echo "$raw" \
-            | tr ', ' '__' \
-            | tr '=/()' '-----' \
-            | tr -cd 'A-Za-z0-9_.-')"
+          safe="$(echo "$raw" | tr -cd 'A-Za-z0-9')"
           echo "safe=$safe" >> "$GITHUB_OUTPUT"
 
       - name: Cache Example build artifacts
@@ -102,10 +136,33 @@ jobs:
           path: |
             Example/.build
             Example/.derivedData
-          key: ${{ runner.os }}-example-nightly-${{ steps.dest.outputs.safe }}-${{ hashFiles('**/Package.resolved') }}
+          key: ${{ runner.os }}-example-nightly-${{ steps.dest.outputs.safe }}-${{ hashFiles('Package.swift', '**/Package.resolved') }}
           restore-keys: |
             ${{ runner.os }}-example-nightly-${{ steps.dest.outputs.safe }}-
             ${{ runner.os }}-example-nightly-
+
+      - name: Resolve simulator UDID
+        id: sim
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/pick_udid.py" <<'PY'
+          import json, subprocess, sys
+
+          name = sys.argv[1]
+          out = subprocess.check_output(["xcrun", "simctl", "list", "devices", "available", "-j"], text=True)
+          for devices in json.loads(out).get("devices", {}).values():
+              for device in devices:
+                  if device.get("name") == name and device.get("isAvailable", False):
+                      print(device["udid"])
+                      raise SystemExit(0)
+          raise SystemExit(1)
+          PY
+          UDID="$(python3 "$RUNNER_TEMP/pick_udid.py" '${{ matrix.deviceName }}')" || {
+            echo "Simulator not found: ${{ matrix.deviceName }}"
+            xcrun simctl list devices available
+            exit 1
+          }
+          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
 
       - name: Resolve packages (Example)
         working-directory: Example
@@ -117,46 +174,29 @@ jobs:
             -clonedSourcePackagesDirPath .build \
             -derivedDataPath .derivedData
 
-      - name: Resolve simulator UDID
-        id: sim
+      - name: Build (Example)
+        working-directory: Example
         run: |
           set -euo pipefail
-          NAME='${{ matrix.deviceName }}'
-
-          python3 - "$NAME" <<'PY' > /tmp/udid.txt
-          import json, subprocess, sys
-
-          name = sys.argv[1]
-          out = subprocess.check_output(
-              ["xcrun", "simctl", "list", "devices", "available", "-j"],
-              text=True
-          )
-          data = json.loads(out)
-
-          for runtime, devices in data.get("devices", {}).items():
-              for d in devices:
-                  if d.get("name") == name and d.get("isAvailable", False):
-                      print(d.get("udid", ""))
-                      raise SystemExit(0)
-
-          raise SystemExit(1)
-          PY
-
-          if [ ! -s /tmp/udid.txt ]; then
-            echo "❌ Simulator not found: $NAME"
-            xcrun simctl list devices available
-            exit 1
-          fi
-
-          UDID="$(cat /tmp/udid.txt)"
-          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+          xcodebuild build \
+            -project Example.xcodeproj \
+            -scheme Example \
+            -destination "platform=iOS Simulator,id=${{ steps.sim.outputs.udid }}" \
+            -configuration Debug \
+            -clonedSourcePackagesDirPath .build \
+            -derivedDataPath .derivedData \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            ONLY_ACTIVE_ARCH=NO \
+            | tee build.log
 
       - name: Upload logs on failure
         if: failure()
         uses: actions/upload-artifact@v4.5.0
         with:
-          name: nightly-example-logs-${{ strategy.job-index }}
-          path: Example/test.log
+          name: nightly-example-logs-${{ steps.dest.outputs.safe }}
+          path: Example/build.log
           if-no-files-found: ignore
 
   validate-distribution:
@@ -166,10 +206,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4.2.2
 
-      - name: Select Xcode (default)
+      - name: Select Xcode
         run: |
           set -euo pipefail
-          sudo xcode-select -s "$(ls -d /Applications/Xcode*.app | sort | tail -n 1)/Contents/Developer"
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
           xcodebuild -version
 
       - name: Validate Package.swift
@@ -177,14 +217,12 @@ jobs:
           set -euo pipefail
           swift package dump-package > /dev/null
 
-      - name: Build macOS + iOS Simulator
+      - name: Build macOS + iOS 15 Simulator
         run: |
           set -euo pipefail
 
-          # Build library for macOS (Release)
           swift build -c release
 
-          # Build library for iOS Simulator (Release)
           ARCH="$(uname -m)"
           if [ "$ARCH" = "arm64" ]; then
             TRIPLE="arm64-apple-ios15.0-simulator"
@@ -210,18 +248,17 @@ jobs:
       - name: Code statistics (best-effort)
         run: |
           set -euo pipefail
-          echo "📊 Code Statistics:"
-          echo "Total Swift files: $(find Sources Tests -name '*.swift' 2>/dev/null | wc -l || true)"
-          echo "Total lines: $(find Sources Tests -name '*.swift' -exec cat {} \; 2>/dev/null | wc -l || true)"
+          echo "Total Swift files: $(find Sources Tests -name '*.swift' | wc -l)"
+          echo "Total lines: $(find Sources Tests -name '*.swift' -exec cat {} \; | wc -l)"
 
       - name: README basic link sanity
         run: |
           set -euo pipefail
           if grep -E '\]\(\s*\)' README.md; then
-            echo "❌ Found empty link in README"
+            echo "Found empty link in README"
             exit 1
           fi
-          echo "✅ README link sanity OK"
+          echo "README link sanity OK"
 
   notify-on-failure:
     name: Notify on Failure (scheduled only)
@@ -229,7 +266,8 @@ jobs:
     needs:
       - lint
       - spm-build-test
-      - example-app-test
+      - platform-build
+      - example-app-build
       - validate-distribution
       - extended-validation
     if: failure() && github.event_name == 'schedule'
@@ -241,7 +279,6 @@ jobs:
             const { owner, repo } = context.repo;
             const runUrl = `https://github.com/${owner}/${repo}/actions/runs/${context.runId}`;
 
-            // Avoid spamming: create only if no open issue exists
             const q = `repo:${owner}/${repo} is:issue is:open in:title "Nightly Build Failed"`;
             const res = await github.rest.search.issuesAndPullRequests({ q, per_page: 1 });
             if (res.data.items.length > 0) {
@@ -265,7 +302,7 @@ jobs:
 
             await github.rest.issues.create({
               owner, repo,
-              title: '🔴 Nightly Build Failed',
+              title: 'Nightly Build Failed',
               body
             });
 
@@ -275,7 +312,8 @@ jobs:
     needs:
       - lint
       - spm-build-test
-      - example-app-test
+      - platform-build
+      - example-app-build
       - validate-distribution
       - extended-validation
     if: always()
@@ -284,10 +322,11 @@ jobs:
         run: |
           if [ "${{ needs.lint.result }}" != "success" ] || \
              [ "${{ needs.spm-build-test.result }}" != "success" ] || \
-             [ "${{ needs.example-app-test.result }}" != "success" ] || \
+             [ "${{ needs.platform-build.result }}" != "success" ] || \
+             [ "${{ needs.example-app-build.result }}" != "success" ] || \
              [ "${{ needs.validate-distribution.result }}" != "success" ] || \
              [ "${{ needs.extended-validation.result }}" != "success" ]; then
-            echo "❌ Nightly failed"
+            echo "Nightly failed"
             exit 1
           fi
-          echo "✅ Nightly passed"
+          echo "Nightly passed"
