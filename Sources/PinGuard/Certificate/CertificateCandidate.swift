@@ -10,7 +10,7 @@ import Security
 struct CertificateCandidate {
 
     let certificate: SecCertificate
-    let spkiHash: String
+    let spkiHash: String?
     let certificateHash: String
     let scope: CertificateScope
 
@@ -19,10 +19,6 @@ struct CertificateCandidate {
         self.certificate = certificate
         self.scope = scope
         self.certificateHash = PinHasher.certificateHash(for: certificate)
-        if let key = SecCertificateCopyKey(certificate) {
-            self.spkiHash = (try? PinHasher.spkiHash(for: key)) ?? ""
-        } else {
-            self.spkiHash = ""
-        }
+        self.spkiHash = SecCertificateCopyKey(certificate).flatMap { try? PinHasher.spkiHash(for: $0) }
     }
 }

@@ -54,6 +54,15 @@ struct PinMatcherTests {
     }
 
     @Test
+    func unsupportedKeyNeverMatchesSPKIPins() throws {
+        let trust = try #require(TestCertificates.makeUnsupportedKeyTrust())
+        let candidates = CertificateChain(trust: trust).candidates
+        let emptyPin = Pin(type: .spki, hash: "")
+        let certificatePin = Pin(type: .certificate, hash: TestCertificates.unsupportedKeyCertificateHash)
+        #expect(matcher.matchedPins([emptyPin, certificatePin], in: candidates) == [certificatePin])
+    }
+
+    @Test
     func returnsEveryMatchedPinIncludingBackup() throws {
         let primary = Pin(type: .spki, hash: "unknown", role: .primary)
         let backup = Pin(type: .spki, hash: TestCertificates.leafSPKIHash, role: .backup)

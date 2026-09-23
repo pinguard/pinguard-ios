@@ -53,6 +53,19 @@ enum TestCertificates {
         bA4ojNzQTXindcaZLla2OJg=
         """) ?? Data()
 
+    static let unsupportedKeyCertificateHash = "4aJnbRVIeBeYHDKqtKwc1lVISOv1PdCCWlHCwZqQOhA="
+
+    static let unsupportedKeyLeafDER = Data(base64Encoded: """
+        MIIBHzCBxQIJAI2+8bGkEzmiMAoGCCqGSM49BAMCMBkxFzAVBgNVBAMMDmsxLmV4YW1wbGUuY29tMB4XDTI2MDkyMzExMzgxMFoX\
+        DTM2MDkyMDExMzgxMFowGTEXMBUGA1UEAwwOazEuZXhhbXBsZS5jb20wVjAQBgcqhkjOPQIBBgUrgQQACgNCAAQYk5QETwHMe6Fq\
+        oVXiI0KnvDNfZowZmO9FEYjBWtiP3g0K065ReeZ/zu2/3nnNraf15QrXrBNXzFrSKYfP2WnOMAoGCCqGSM49BAMCA0kAMEYCIQC4\
+        rC8MAqEJuqXCcZZxEPgqqEPXPOCyK42Pjz2ddTRxdQIhAOeDkf5KQb8ItDNxvyNPoNn/N2QrjcEYn/FfJFVu9y+u
+        """) ?? Data()
+
+    static var unsupportedKeyLeaf: SecCertificate? {
+        SecCertificateCreateWithData(nil, unsupportedKeyLeafDER as CFData)
+    }
+
     static var intermediate: SecCertificate? {
         SecCertificateCreateWithData(nil, intermediateDER as CFData)
     }
@@ -106,5 +119,16 @@ enum TestCertificates {
         }
 
         return makeTrust(certificates: [leaf, root])
+    }
+
+    /// Builds a single-certificate trust object for k1.example.com whose secp256k1 key Security cannot read.
+    ///
+    /// - Returns: The trust object, or `nil` when the fixture cannot be decoded.
+    static func makeUnsupportedKeyTrust() -> SecTrust? {
+        guard let unsupportedKeyLeaf else {
+            return nil
+        }
+
+        return makeTrust(certificates: [unsupportedKeyLeaf], host: "k1.example.com")
     }
 }

@@ -19,6 +19,10 @@ public final class PinGuardSession: Sendable {
                                   delegateQueue: nil)
     }
 
+    deinit {
+        session.finishTasksAndInvalidate()
+    }
+
     /// Performs a data task for the specified URLRequest.
     ///
     /// - Parameter request: The URLRequest to execute.

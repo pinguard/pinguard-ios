@@ -50,6 +50,15 @@ struct CertificateChainTests {
     }
 
     @Test
+    func unsupportedKeyLeavesSPKIHashNil() throws {
+        let trust = try #require(TestCertificates.makeUnsupportedKeyTrust())
+        let chain = CertificateChain(trust: trust)
+        #expect(chain.candidates.map(\.scope) == [.leaf])
+        #expect(chain.candidates.first?.spkiHash == nil)
+        #expect(chain.candidates.first?.certificateHash == TestCertificates.unsupportedKeyCertificateHash)
+    }
+
+    @Test
     func emptyCandidatesProduceEmptySummary() {
         let chain = CertificateChain(candidates: [])
         #expect(chain.summary == ChainSummary(leafCommonName: nil, issuerCommonName: nil, sanCount: 0))
