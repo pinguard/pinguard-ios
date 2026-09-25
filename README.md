@@ -35,7 +35,7 @@ No third-party dependencies. Only `Foundation`, `Security`, `CryptoKit` and `os`
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/pinguard/pinguard-ios.git", from: "1.0.0")
+    .package(url: "https://github.com/pinguard/pinguard-ios.git", from: "1.0.2")
 ]
 ```
 
