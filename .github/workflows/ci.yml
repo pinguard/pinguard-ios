@@ -19,7 +19,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v7.0.1
 
       - name: Install SwiftLint (if missing)
         run: command -v swiftlint >/dev/null 2>&1 || brew install swiftlint
@@ -34,7 +34,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v7.0.1
 
       - name: Select Xcode
         run: |
@@ -43,7 +43,7 @@ jobs:
           swift --version
 
       - name: Cache SPM build
-        uses: actions/cache@v4.2.2
+        uses: actions/cache@v6.1.0
         with:
           path: .build
           key: ${{ runner.os }}-spm-${{ hashFiles('Package.swift', '**/Package.resolved') }}
@@ -84,7 +84,7 @@ jobs:
 
       - name: Upload coverage artifact
         if: always()
-        uses: actions/upload-artifact@v4.5.0
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: spm-code-coverage
           path: coverage.lcov
@@ -103,7 +103,7 @@ jobs:
           - { name: visionOS Simulator, destination: "generic/platform=visionOS Simulator" }
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v7.0.1
 
       - name: Select Xcode
         run: |
@@ -124,7 +124,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v7.0.1
 
       - name: Select Xcode
         run: |
@@ -132,7 +132,7 @@ jobs:
           xcodebuild -version
 
       - name: Cache Example SPM
-        uses: actions/cache@v4.2.2
+        uses: actions/cache@v6.1.0
         with:
           path: Example/.build
           key: ${{ runner.os }}-example-${{ hashFiles('Package.swift', '**/Package.resolved') }}
@@ -166,7 +166,7 @@ jobs:
 
       - name: Upload logs on failure
         if: failure()
-        uses: actions/upload-artifact@v4.5.0
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: example-logs
           path: Example/build.log
@@ -177,7 +177,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v7.0.1
 
       - name: Select Xcode
         run: |
