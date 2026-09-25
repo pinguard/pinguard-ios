@@ -19,7 +19,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v7.0.1
 
       - name: Install SwiftLint (if missing)
         run: command -v swiftlint >/dev/null 2>&1 || brew install swiftlint
@@ -40,7 +40,7 @@ jobs:
           - xcode-27
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v7.0.1
 
       - name: Select Xcode
         run: |
@@ -50,7 +50,7 @@ jobs:
           swift --version
 
       - name: Cache SPM build
-        uses: actions/cache@v4.2.2
+        uses: actions/cache@v6.1.0
         with:
           path: .build
           key: ${{ matrix.runner }}-spm-nightly-${{ hashFiles('Package.swift', '**/Package.resolved') }}
@@ -86,10 +86,11 @@ jobs:
           - { name: visionOS Simulator, destination: "generic/platform=visionOS Simulator" }
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v7.0.1
 
       - name: Select Xcode
         run: |
+          set -euo pipefail
           sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
           xcodebuild -version
 
@@ -103,18 +104,20 @@ jobs:
             CODE_SIGNING_ALLOWED=NO
 
   example-app-build:
-    name: Example App (${{ matrix.deviceName }})
+    name: Example App (${{ matrix.device.name }})
     runs-on: macos-latest
     strategy:
       fail-fast: false
       matrix:
-        deviceName:
-          - iPhone 17
-          - iPhone 17 Pro
-          - iPad Pro 13-inch (M4)
+        # `pattern` is a regex matched against simulator names; the newest iOS runtime
+        # and then the newest device wins, so Xcode updates do not break this job.
+        device:
+          - { name: iPhone, pattern: '^iPhone [0-9]+$' }
+          - { name: iPhone Pro, pattern: '^iPhone [0-9]+ Pro$' }
+          - { name: iPad Pro 13-inch, pattern: '^iPad Pro 13-inch' }
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v7.0.1
 
       - name: Select Xcode
         run: |
@@ -126,12 +129,12 @@ jobs:
         id: dest
         run: |
           set -euo pipefail
-          raw='${{ matrix.deviceName }}'
+          raw='${{ matrix.device.name }}'
           safe="$(echo "$raw" | tr -cd 'A-Za-z0-9')"
           echo "safe=$safe" >> "$GITHUB_OUTPUT"
 
       - name: Cache Example build artifacts
-        uses: actions/cache@v4.2.2
+        uses: actions/cache@v6.1.0
         with:
           path: |
             Example/.build
@@ -145,20 +148,8 @@ jobs:
         id: sim
         run: |
           set -euo pipefail
-          cat > "$RUNNER_TEMP/pick_udid.py" <<'PY'
-          import json, subprocess, sys
-
-          name = sys.argv[1]
-          out = subprocess.check_output(["xcrun", "simctl", "list", "devices", "available", "-j"], text=True)
-          for devices in json.loads(out).get("devices", {}).values():
-              for device in devices:
-                  if device.get("name") == name and device.get("isAvailable", False):
-                      print(device["udid"])
-                      raise SystemExit(0)
-          raise SystemExit(1)
-          PY
-          UDID="$(python3 "$RUNNER_TEMP/pick_udid.py" '${{ matrix.deviceName }}')" || {
-            echo "Simulator not found: ${{ matrix.deviceName }}"
+          UDID="$(python3 .github/scripts/pick-simulator.py '${{ matrix.device.pattern }}')" || {
+            echo "::error::No available iOS simulator matches '${{ matrix.device.pattern }}'"
             xcrun simctl list devices available
             exit 1
           }
@@ -193,7 +184,7 @@ jobs:
 
       - name: Upload logs on failure
         if: failure()
-        uses: actions/upload-artifact@v4.5.0
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: nightly-example-logs-${{ steps.dest.outputs.safe }}
           path: Example/build.log
@@ -204,7 +195,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v7.0.1
 
       - name: Select Xcode
         run: |
@@ -238,7 +229,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v7.0.1
 
       - name: Show dependencies
         run: |
@@ -273,15 +264,17 @@ jobs:
     if: failure() && github.event_name == 'schedule'
     steps:
       - name: Create issue if none open
-        uses: actions/github-script@v7.0.1
+        uses: actions/github-script@v9.0.0
         with:
           script: |
             const { owner, repo } = context.repo;
+            const title = 'Nightly Build Failed';
             const runUrl = `https://github.com/${owner}/${repo}/actions/runs/${context.runId}`;
 
-            const q = `repo:${owner}/${repo} is:issue is:open in:title "Nightly Build Failed"`;
-            const res = await github.rest.search.issuesAndPullRequests({ q, per_page: 1 });
-            if (res.data.items.length > 0) {
+            const open = await github.paginate(github.rest.issues.listForRepo, {
+              owner, repo, state: 'open', per_page: 100
+            });
+            if (open.some(issue => !issue.pull_request && issue.title === title)) {
               core.info('An open nightly failure issue already exists. Skipping creation.');
               return;
             }
@@ -300,11 +293,7 @@ jobs:
               '3) Close this issue'
             ].join('\n');
 
-            await github.rest.issues.create({
-              owner, repo,
-              title: 'Nightly Build Failed',
-              body
-            });
+            await github.rest.issues.create({ owner, repo, title, body });
 
   nightly-success:
     name: Nightly Success
