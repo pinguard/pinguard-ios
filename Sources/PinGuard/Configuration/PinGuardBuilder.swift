@@ -5,6 +5,7 @@
 //  Created by Çağatay Eğilmez on 16.02.2026.
 //
 
+/// A mutable helper that collects environments, sinks and settings before producing a configuration.
 public struct PinGuardBuilder: Sendable {
 
     private var environments: [PinGuardEnvironment: PinGuardEnvironmentConfiguration] = [:]

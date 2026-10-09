@@ -5,6 +5,7 @@
 //  Created by Çağatay Eğilmez on 2.02.2026.
 //
 
+/// A provider that loads the same identity from a fixed source on every challenge.
 public struct StaticClientCertificateProvider: ClientCertificateProvider {
 
     private let source: ClientCertificateSource

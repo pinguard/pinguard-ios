@@ -5,6 +5,7 @@
 //  Created by Çağatay Eğilmez on 2.02.2026.
 //
 
+/// Supplies the client identity PinGuard presents when a server asks for a certificate.
 public protocol ClientCertificateProvider: Sendable {
 
     /// Provides a client identity to use for mTLS with the specified host.

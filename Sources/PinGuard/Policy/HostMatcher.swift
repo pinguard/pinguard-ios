@@ -5,6 +5,7 @@
 //  Created by Çağatay Eğilmez on 2.02.2026.
 //
 
+/// Matches hostnames against exact and wildcard patterns.
 public enum HostMatcher {
 
     /// Returns whether a host matches the given host pattern.

@@ -247,6 +247,29 @@ jobs:
           swift build
           echo "Integration OK"
 
+  docs-build:
+    name: Build Documentation
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+
+      - name: Select Xcode
+        run: |
+          set -euo pipefail
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          xcodebuild -version
+
+      - name: Build DocC (warnings as errors)
+        run: |
+          set -euo pipefail
+          xcodebuild docbuild \
+            -scheme PinGuard \
+            -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath .derivedData \
+            OTHER_DOCC_FLAGS="--warnings-as-errors" \
+            CODE_SIGNING_ALLOWED=NO
+
   ci-success:
     name: CI Success
     runs-on: ubuntu-latest
@@ -256,6 +279,7 @@ jobs:
       - platform-build
       - example-app-build
       - validate-distribution
+      - docs-build
     if: always()
     steps:
       - name: Ensure all jobs succeeded
@@ -264,7 +288,8 @@ jobs:
              [ "${{ needs.spm-build-test.result }}" != "success" ] || \
              [ "${{ needs.platform-build.result }}" != "success" ] || \
              [ "${{ needs.example-app-build.result }}" != "success" ] || \
-             [ "${{ needs.validate-distribution.result }}" != "success" ]; then
+             [ "${{ needs.validate-distribution.result }}" != "success" ] || \
+             [ "${{ needs.docs-build.result }}" != "success" ]; then
             echo "One or more CI jobs failed"
             exit 1
           fi

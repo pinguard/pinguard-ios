@@ -7,6 +7,7 @@
 
 import os
 
+/// The default sink that writes every event to the unified log.
 public struct OSLogEventSink: PinGuardEventSink {
 
     private let logger: Logger

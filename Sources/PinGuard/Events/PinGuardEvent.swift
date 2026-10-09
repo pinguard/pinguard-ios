@@ -5,6 +5,7 @@
 //  Created by Çağatay Eğilmez on 2.02.2026.
 //
 
+/// Everything PinGuard reports while evaluating a connection or applying configuration.
 public enum PinGuardEvent: Equatable, Sendable {
 
     /// No policy could be found for the given host.

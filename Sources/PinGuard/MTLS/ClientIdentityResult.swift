@@ -7,6 +7,7 @@
 
 import Security
 
+/// The result of looking up a client identity for mutual TLS.
 public enum ClientIdentityResult {
 
     /// A client identity and its certificate chain were successfully retrieved.

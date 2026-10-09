@@ -7,6 +7,7 @@
 
 import Security
 
+/// Runs system trust and pin matching for one policy set without going through a `PinGuard` instance.
 public struct TrustEvaluator: Sendable {
 
     private let policyResolver: PolicyResolver

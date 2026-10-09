@@ -4,6 +4,7 @@
 [![Platforms](https://img.shields.io/badge/Platforms-iOS%2015%20|%20macOS%2012%20|%20tvOS%2015%20|%20watchOS%208%20|%20visionOS%201-blue.svg)](https://developer.apple.com)
 [![SPM](https://img.shields.io/badge/SPM-Compatible-brightgreen.svg)](https://swift.org/package-manager)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![Documentation](https://img.shields.io/badge/DocC-Documentation-blue.svg)](https://pinguard.github.io/pinguard-ios/documentation/pinguard/)
 
 Certificate pinning for `URLSession`, written in Swift 6 with structured concurrency. Optional mutual TLS and signed remote configuration are included.
 
@@ -40,6 +41,15 @@ dependencies: [
 ```
 
 Then add `PinGuard` to your target's dependencies.
+
+## Documentation
+
+The full documentation is written with DocC and published in two places:
+
+- [GitHub Pages](https://pinguard.github.io/pinguard-ios/documentation/pinguard/), rebuilt on every release.
+- [Swift Package Index](https://swiftpackageindex.com/pinguard/pinguard-ios/documentation/pinguard), with a version picker.
+
+Start with Getting Started, then read Security Model to see what pinning does and does not protect you from. The same catalog is in `Sources/PinGuard/PinGuard.docc`, and Xcode renders it under Product, then Build Documentation.
 
 ## Quick start
 

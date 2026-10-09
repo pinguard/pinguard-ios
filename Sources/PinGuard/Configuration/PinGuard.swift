@@ -7,8 +7,10 @@
 
 import Security
 
+/// The entry point that holds the active configuration and decides whether a server is trusted.
 public actor PinGuard {
 
+    /// The shared instance that `PinGuardSession` and `PinGuardURLSessionDelegate` use by default.
     public static let shared = PinGuard()
 
     private var configuration: PinGuardConfiguration
@@ -24,6 +26,7 @@ public actor PinGuard {
         self.systemTrustEvaluator = systemTrustEvaluator
     }
 
+    /// The configuration in effect right now, including every environment and sink.
     public var currentConfiguration: PinGuardConfiguration {
         configuration
     }

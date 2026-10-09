@@ -5,6 +5,7 @@
 //  Created by Çağatay Eğilmez on 2.02.2026.
 //
 
+/// What a pin's hash was computed from.
 public enum PinType: String, Codable, Sendable {
 
     /// Pin is a hash of the certificate's Subject Public Key Info (SPKI).

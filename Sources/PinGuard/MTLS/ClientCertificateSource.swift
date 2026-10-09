@@ -7,6 +7,7 @@
 
 import Foundation
 
+/// Where a static client identity is read from.
 public enum ClientCertificateSource: Sendable {
 
     /// PKCS12 bundle containing the client identity and certificates.
