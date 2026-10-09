@@ -5,6 +5,7 @@
 //  Created by Çağatay Eğilmez on 2.02.2026.
 //
 
+/// The errors PinGuard throws while hashing keys or applying remote configuration.
 public enum PinGuardError: Error, Equatable, Sendable {
 
     /// Encountered a key type that isn't supported for pinning.

@@ -5,6 +5,7 @@
 //  Created by Çağatay Eğilmez on 2.02.2026.
 //
 
+/// Checks the signature of a remote configuration blob before it is decoded.
 public protocol RemoteConfigVerifier: Sendable {
 
     /// Verifies the signature of the provided remote configuration blob.

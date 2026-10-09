@@ -251,6 +251,29 @@ jobs:
           fi
           echo "README link sanity OK"
 
+  docs-build:
+    name: Build Documentation
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+
+      - name: Select Xcode
+        run: |
+          set -euo pipefail
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          xcodebuild -version
+
+      - name: Build DocC (warnings as errors)
+        run: |
+          set -euo pipefail
+          xcodebuild docbuild \
+            -scheme PinGuard \
+            -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath .derivedData \
+            OTHER_DOCC_FLAGS="--warnings-as-errors" \
+            CODE_SIGNING_ALLOWED=NO
+
   notify-on-failure:
     name: Notify on Failure (scheduled only)
     runs-on: ubuntu-latest
@@ -261,6 +284,7 @@ jobs:
       - example-app-build
       - validate-distribution
       - extended-validation
+      - docs-build
     if: failure() && github.event_name == 'schedule'
     steps:
       - name: Create issue if none open
@@ -305,6 +329,7 @@ jobs:
       - example-app-build
       - validate-distribution
       - extended-validation
+      - docs-build
     if: always()
     steps:
       - name: Ensure all jobs succeeded
@@ -314,7 +339,8 @@ jobs:
              [ "${{ needs.platform-build.result }}" != "success" ] || \
              [ "${{ needs.example-app-build.result }}" != "success" ] || \
              [ "${{ needs.validate-distribution.result }}" != "success" ] || \
-             [ "${{ needs.extended-validation.result }}" != "success" ]; then
+             [ "${{ needs.extended-validation.result }}" != "success" ] || \
+             [ "${{ needs.docs-build.result }}" != "success" ]; then
             echo "Nightly failed"
             exit 1
           fi

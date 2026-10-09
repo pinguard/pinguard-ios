@@ -8,6 +8,7 @@
 import CryptoKit
 import Foundation
 
+/// Verifies remote configuration blobs signed with HMAC-SHA256 and a shared secret.
 public struct HMACRemoteConfigVerifier: RemoteConfigVerifier {
 
     private let secretProvider: @Sendable (String) -> Data?

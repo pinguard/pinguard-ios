@@ -5,6 +5,7 @@
 //  Created by Çağatay Eğilmez on 2.02.2026.
 //
 
+/// The single reason that explains a trust decision.
 public enum TrustDecisionReason: Equatable, Sendable {
 
     /// One or more pins matched the server's certificate or public key.

@@ -9,6 +9,7 @@ import CryptoKit
 import Foundation
 import Security
 
+/// Computes the Base64 SHA-256 hashes that pins are compared against.
 public enum PinHasher {
 
     /// Computes a Base64-encoded SHA-256 hash of the key's Subject Public Key Info (SPKI).

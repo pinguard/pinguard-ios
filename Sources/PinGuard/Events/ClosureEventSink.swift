@@ -5,6 +5,7 @@
 //  Created by Çağatay Eğilmez on 23.09.2026.
 //
 
+/// An event sink that forwards every event to a closure.
 public struct ClosureEventSink: PinGuardEventSink {
 
     private let handler: @Sendable (PinGuardEvent) -> Void

@@ -5,6 +5,7 @@
 //  Created by Çağatay Eğilmez on 2.02.2026.
 //
 
+/// The position in the certificate chain a pin is allowed to match.
 public enum PinScope: String, Codable, Sendable {
 
     /// Applies to the leaf (end-entity) certificate.

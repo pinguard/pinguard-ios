@@ -7,6 +7,7 @@
 
 import Foundation
 
+/// Verifies a remote configuration blob and turns its payload into a policy set.
 public struct RemoteConfigDecoder: Sendable {
 
     private let verifier: any RemoteConfigVerifier

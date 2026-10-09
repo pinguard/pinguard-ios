@@ -7,6 +7,7 @@
 
 import Foundation
 
+/// A thin wrapper around `URLSession` whose delegate runs PinGuard on every authentication challenge.
 public final class PinGuardSession: Sendable {
 
     private let session: URLSession

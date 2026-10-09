@@ -8,6 +8,7 @@
 import Foundation
 import Security
 
+/// Loads client identities from PKCS12 data or the keychain.
 public enum ClientCertificateLoader {
 
     /// Loads a client identity from the specified source.

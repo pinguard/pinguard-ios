@@ -5,6 +5,7 @@
 //  Created by Çağatay Eğilmez on 2.02.2026.
 //
 
+/// Tells a primary pin apart from the backup kept for key rotation.
 public enum PinRole: String, Codable, Sendable {
 
     /// Primary pin used for normal validation.

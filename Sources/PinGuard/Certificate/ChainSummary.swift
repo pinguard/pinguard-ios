@@ -5,10 +5,16 @@
 //  Created by Çağatay Eğilmez on 10.02.2026.
 //
 
+/// A redacted description of a certificate chain that is safe to log.
 public struct ChainSummary: Equatable, Sendable {
 
+    /// The leaf subject reduced to `*.example.com` form, or `nil` when it is not domain-like.
     public let leafCommonName: String?
+
+    /// The issuer subject reduced to `*.example.com` form, or `nil` when it is not domain-like.
     public let issuerCommonName: String?
+
+    /// The number of Subject Alternative Name entries on the leaf certificate.
     public let sanCount: Int
 
     public init(leafCommonName: String?,

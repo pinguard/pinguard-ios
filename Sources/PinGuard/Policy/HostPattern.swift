@@ -7,6 +7,7 @@
 
 import Foundation
 
+/// A pattern that selects which hosts a policy applies to.
 public enum HostPattern: Hashable, Codable, Sendable {
 
     /// Matches only the exact hostname value.
@@ -20,6 +21,7 @@ public enum HostPattern: Hashable, Codable, Sendable {
         self = HostPattern.parse(try container.decode(String.self))
     }
 
+    /// The single string form of the pattern, such as `api.example.com` or `*.example.com`.
     public var rawValue: String {
         switch self {
         case .exact(let value):

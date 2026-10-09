@@ -13,11 +13,19 @@ private enum PinCodingKey: String, CodingKey {
     case scope
 }
 
+/// A single expected hash together with what it hashes, its role and where in the chain it may match.
 public struct Pin: Hashable, Codable, Sendable {
 
+    /// What the hash was computed from: the public key, the certificate or a CA certificate.
     public let type: PinType
+
+    /// The Base64 encoded SHA-256 digest to compare against.
     public let hash: String
+
+    /// Whether this is the primary pin or the backup kept for key rotation.
     public let role: PinRole
+
+    /// The chain position this pin is allowed to match.
     public let scope: PinScope
 
     public init(type: PinType,

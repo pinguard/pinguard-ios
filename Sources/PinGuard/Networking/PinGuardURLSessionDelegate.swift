@@ -7,6 +7,7 @@
 
 import Foundation
 
+/// A `URLSession` delegate that answers server trust and client certificate challenges with PinGuard.
 public final class PinGuardURLSessionDelegate: NSObject, URLSessionDelegate, URLSessionTaskDelegate {
 
     private let pinGuard: PinGuard

@@ -8,6 +8,7 @@
 import CryptoKit
 import Foundation
 
+/// Verifies remote configuration blobs signed with ECDSA P-256 over SHA-256.
 public struct PublicKeyRemoteConfigVerifier: RemoteConfigVerifier {
 
     private let publicKeyProvider: @Sendable (String) -> Data?

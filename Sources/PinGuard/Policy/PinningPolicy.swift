@@ -13,11 +13,19 @@ private enum PinningPolicyCodingKey: String, CodingKey {
     case allowSystemTrustFallback
 }
 
+/// The pins a host must present plus the switches that decide how strictly they are enforced.
 public struct PinningPolicy: Hashable, Codable, Sendable {
 
+    /// The pins that may match the server's chain; at least one must match.
     public let pins: [Pin]
+
+    /// Whether failures cancel the connection or are only reported.
     public let failStrategy: FailStrategy
+
+    /// Whether the operating system must trust the chain before pins are checked.
     public let requireSystemTrust: Bool
+
+    /// Whether a pin mismatch is accepted when the operating system trusted the chain.
     public let allowSystemTrustFallback: Bool
 
     public init(pins: [Pin],
