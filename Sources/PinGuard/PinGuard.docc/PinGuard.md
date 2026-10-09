@@ -100,6 +100,6 @@ Everything else is optional. You can register several environments and switch be
 
 - ``PinGuardError``
 
-### Troubleshooting
+### Diagnosing problems
 
 - <doc:Troubleshooting>
